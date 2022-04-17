@@ -7,6 +7,7 @@
 
 #include <View.h>
 
+class BScrollView;
 class BTextView;
 
 
@@ -24,12 +25,16 @@ public:
 
 private:
 	void               _Init(BRect frame);
+
+	void               _InitInterface();
 	void               _SetText(const char* text);
 	void               _UpdateColors();
 
 	BString            _GetCurrentPath();
 
 	BTextView* fTextView;
+	BScrollView* fScrollView;
+
 	rgb_color fBgColor;
 	rgb_color fFgColor;
 	BString fCurrentPath;

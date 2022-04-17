@@ -9,6 +9,7 @@
 
 #include <Dragger.h>
 #include <Messenger.h>
+#include <ScrollView.h>
 #include <TextView.h>
 
 #include "Song.h"
@@ -21,15 +22,22 @@ LyricsView::LyricsView(BRect frame)
 	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
 	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
 
-	BDragger* airdrag = new BDragger(frame, this,
-		B_FOLLOW_RIGHT | B_FOLLOW_BOTTOM, B_WILL_DRAW);
+	BRect dragRect(0, 0, 10, frame.Height());
+	BDragger* airdrag = new BDragger(dragRect, this,
+		B_FOLLOW_LEFT | B_FOLLOW_BOTTOM, B_WILL_DRAW);
+	airdrag->SetViewColor(B_TRANSPARENT_COLOR);
 	AddChild(airdrag);
 
-	fTextView = new BTextView(Bounds(), "lyricsText", Bounds(),
+	BRect textRect(0, 0, Bounds().Width(), Bounds().Height() - 10);
+	fTextView = new BTextView(textRect, "lyricsText", textRect,
 		B_FOLLOW_ALL, B_WILL_DRAW);
 	fTextView->MakeEditable(false);
 	fTextView->SetStylable(false);
-	AddChild(fTextView);
+
+	fScrollView = new BScrollView("scrollView", fTextView, B_FOLLOW_ALL_SIDES,
+		B_WILL_DRAW, false, true, B_NO_BORDER);
+	fScrollView->ScrollBar(B_VERTICAL)->Hide();
+	AddChild(fScrollView);
 
 	_Init(frame);
 }
@@ -43,6 +51,7 @@ LyricsView::LyricsView(BMessage* data)
 	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
 
 	fTextView = dynamic_cast<BTextView*>(FindView("lyricsText"));
+	fScrollView = dynamic_cast<BScrollView*>(FindView("scrollView"));
 	data->FindColor("background_color", &fBgColor);
 	data->FindColor("foreground_color", &fFgColor);
 
@@ -87,10 +96,8 @@ LyricsView::MessageReceived(BMessage* msg)
 			if (found_color == B_OK && msg->FindInt32("buttons", &buttons) == B_OK)
 				if (buttons & B_PRIMARY_MOUSE_BUTTON)
 					fBgColor = *recv_color;
-				else if (buttons & B_SECONDARY_MOUSE_BUTTON) {
-					printf("MOM\n");
+				else if (buttons & B_SECONDARY_MOUSE_BUTTON)
 					fFgColor = *recv_color;
-				}
 
 			_UpdateColors();
 			break;
@@ -133,12 +140,10 @@ LyricsView::_SetText(const char* text)
 		if (fTextView->IsHidden() == true)
 			fTextView->Show();
 		fTextView->SetText(text);
-		printf("NOT NULL\n");
 	} else if (text == NULL) {
 		if (fTextView->IsHidden() == false)
 			fTextView->Hide();
 		fTextView->SetText("");
-		printf("NULL\n");
 	}
 }
 
@@ -147,6 +152,7 @@ void
 LyricsView::_UpdateColors()
 {
 	SetViewColor(B_TRANSPARENT_COLOR);
+	fScrollView->SetViewColor(B_TRANSPARENT_COLOR);
 	fTextView->SetViewColor(fBgColor);
 
 	text_run run;
