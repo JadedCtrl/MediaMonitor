@@ -8,20 +8,89 @@
 #include <cstdio>
 
 #include <Dragger.h>
+#include <MenuItem.h>
 #include <Messenger.h>
+#include <PopUpMenu.h>
 #include <ScrollView.h>
-#include <TextView.h>
+#include <Window.h>
 
 #include "Song.h"
+
+
+LyricsTextView::LyricsTextView(BRect frame, const char* name, BRect textFrame,
+	uint32 resize, uint32 flags)
+	:
+	BTextView(frame, name, textFrame, resize, flags)
+{
+}
+
+
+LyricsTextView::LyricsTextView(BMessage* data)
+	:
+	BTextView(data)
+{
+}
+
+
+status_t
+LyricsTextView::Archive(BMessage* data, bool deep) const
+{
+	status_t status = BTextView::Archive(data, deep);
+	data->AddString("class", "LyricsTextView");
+	data->AddString("add_on", "application/x-vnd.mediamonitor");
+	return status;
+}
+
+
+LyricsTextView*
+LyricsTextView::Instantiate(BMessage* data)
+{
+	if (!validate_instantiation(data, "LyricsTextView"))
+		return NULL;
+	return new LyricsTextView(data);
+}
+
+
+void
+LyricsTextView::MouseDown(BPoint where)
+{
+	uint32 buttons = 0;
+	Window()->CurrentMessage()->FindInt32("buttons", (int32*)&buttons);
+
+	if (buttons & B_SECONDARY_MOUSE_BUTTON)
+		_RightClickPopUp(where)->Go(ConvertToScreen(where), true, false);
+	else
+		BTextView::MouseDown(where);
+}
+
+
+BPopUpMenu*
+LyricsTextView::_RightClickPopUp(BPoint where)
+{
+	BPopUpMenu* menu = new BPopUpMenu("rightClickPopUp");
+	BMenuItem* copy =
+		new BMenuItem("Copy", new BMessage(B_COPY), 'C', B_COMMAND_KEY);
+	BMenuItem* selectAll = new BMenuItem("Select all",
+		new BMessage(B_SELECT_ALL), 'A', B_COMMAND_KEY);
+
+	int32 start = -1, end = -1;
+	GetSelection(&start, &end);
+
+	copy->SetEnabled(start >= 0 && end > 0);
+	copy->SetTarget(this);
+	menu->AddItem(copy);
+
+	selectAll->SetTarget(this);
+	menu->AddItem(selectAll);
+
+	return menu;
+}
 
 
 LyricsView::LyricsView(BRect frame)
 	:
 	BView(frame, "Lyrics", B_FOLLOW_ALL_SIDES, B_WILL_DRAW | B_TRANSPARENT_BACKGROUND | B_PULSE_NEEDED)
 {
-	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
-	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
-
 	BRect dragRect(0, 0, 10, frame.Height());
 	BDragger* airdrag = new BDragger(dragRect, this,
 		B_FOLLOW_LEFT | B_FOLLOW_BOTTOM, B_WILL_DRAW);
@@ -29,15 +98,19 @@ LyricsView::LyricsView(BRect frame)
 	AddChild(airdrag);
 
 	BRect textRect(0, 0, Bounds().Width(), Bounds().Height() - 10);
-	fTextView = new BTextView(textRect, "lyricsText", textRect,
+	fTextView = new LyricsTextView(textRect, "lyricsText", textRect,
 		B_FOLLOW_ALL, B_WILL_DRAW);
 	fTextView->MakeEditable(false);
-	fTextView->SetStylable(false);
+	fTextView->SetStylable(true);
 
 	fScrollView = new BScrollView("scrollView", fTextView, B_FOLLOW_ALL_SIDES,
 		B_WILL_DRAW, false, true, B_NO_BORDER);
 	fScrollView->ScrollBar(B_VERTICAL)->Hide();
 	AddChild(fScrollView);
+
+	fTransparentInactivity = false;
+	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
+	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
 
 	_Init(frame);
 }
@@ -47,13 +120,15 @@ LyricsView::LyricsView(BMessage* data)
 	:
 	BView(data)
 {
+	fTransparentInactivity = false;
 	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
 	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
 
-	fTextView = dynamic_cast<BTextView*>(FindView("lyricsText"));
+	fTextView = dynamic_cast<LyricsTextView*>(FindView("lyricsText"));
 	fScrollView = dynamic_cast<BScrollView*>(FindView("scrollView"));
 	data->FindColor("background_color", &fBgColor);
 	data->FindColor("foreground_color", &fFgColor);
+	data->FindBool("transparent_inactivity", &fTransparentInactivity);
 
 	_Init(Frame());
 }
@@ -65,6 +140,7 @@ LyricsView::Archive(BMessage* data, bool deep) const
 	status_t status = BView::Archive(data, deep);
 	data->AddColor("background_color", fBgColor);
 	data->AddColor("foreground_color", fFgColor);
+	data->AddBool("transparent_inactivity", fTransparentInactivity);
 
 	data->AddString("class", "LyricsView");
 	data->AddString("add_on", "application/x-vnd.mediamonitor");
@@ -119,7 +195,7 @@ LyricsView::Pulse()
 		_SetText(lyrics.String());
 	} else if (path.IsEmpty() == true && path != fCurrentPath) {
 		fCurrentPath = path;
-		_SetText(NULL);
+		_ClearText();
 	}
 }
 
@@ -127,7 +203,7 @@ LyricsView::Pulse()
 void
 LyricsView::_Init(BRect frame)
 {
-	_SetText(NULL);
+	_ClearText();
 	_UpdateColors();
 	Pulse();
 }
@@ -136,15 +212,22 @@ LyricsView::_Init(BRect frame)
 void
 LyricsView::_SetText(const char* text)
 {
-	if (text != NULL) {
-		if (fTextView->IsHidden() == true)
-			fTextView->Show();
-		fTextView->SetText(text);
-	} else if (text == NULL) {
-		if (fTextView->IsHidden() == false)
-			fTextView->Hide();
-		fTextView->SetText("");
-	}
+	if (fScrollView->IsHidden() == true)
+		fScrollView->Show();
+
+	fTextView->SetText(text);
+	fTextView->SetAlignment(B_ALIGN_LEFT);
+}
+
+
+void
+LyricsView::_ClearText()
+{
+	if (fScrollView->IsHidden() == false && fTransparentInactivity == true)
+		fScrollView->Hide();
+
+	fTextView->SetText("No lyrics to display!");
+	fTextView->SetAlignment(B_ALIGN_CENTER);
 }
 
 
