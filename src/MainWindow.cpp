@@ -8,6 +8,7 @@
 #include <LayoutBuilder.h>
 #include <TabView.h>
 
+#include "CoverView.h"
 #include "LyricsView.h"
 
 
@@ -27,6 +28,7 @@ MainWindow::_InitInterface()
 {
 	BTabView* tabView = new BTabView("appletTabView");
 	tabView->AddTab(new LyricsView(BRect(BPoint(0,0), BSize(300.0, 200.0))));
+	tabView->AddTab(new CoverView(BRect(BPoint(0,0), BSize(300.0, 200.0))));
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0.0f)
 		.Add(tabView)

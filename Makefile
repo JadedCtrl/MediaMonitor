@@ -33,6 +33,7 @@ APP_MIME_SIG = application/x-vnd.mediamonitor
 #	Also note that spaces in folder names do not work well with this Makefile.
 SRCS = src/App.cpp \
 	src/MainWindow.cpp \
+	src/CoverView.cpp \
 	src/LyricsView.cpp \
 	src/Song.cpp
 
@@ -60,7 +61,7 @@ RSRCS =
 #	- 	if your library does not follow the standard library naming scheme,
 #		you need to specify the path to the library and it's name.
 #		(e.g. for mylib.a, specify "mylib.a" or "path/mylib.a")
-LIBS = be $(STDCPPLIBS)
+LIBS = be translation $(STDCPPLIBS)
 
 #	Specify additional paths to directories following the standard libXXX.so
 #	or libXXX.a naming scheme. You can specify full paths or paths relative

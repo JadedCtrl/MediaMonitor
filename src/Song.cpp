@@ -10,6 +10,7 @@
 #include <Directory.h>
 #include <File.h>
 #include <String.h>
+#include <TranslationUtils.h>
 
 
 Song::Song(const char* path)
@@ -36,6 +37,13 @@ Song::Lyrics(BString* buffer)
 }
 
 
+BBitmap*
+Song::Cover()
+{
+	return BTranslationUtils::GetBitmapFile(_CoverPath().Path());
+}
+
+
 // Our song's leaf, sans file extension
 const char*
 Song::_FileLeaf()
@@ -49,6 +57,38 @@ Song::_FileLeaf()
 // Search for any text-file with the same leaf of the song
 BPath
 Song::_LyricsPath()
+{
+	return _SimilarFileOfType("text/");
+}
+
+
+// Search for any image-file in the same directory
+BPath
+Song::_CoverPath()
+{
+	BPath path = _SimilarFileOfType("image/");
+	if (path.InitCheck() != B_OK)
+		path = _AnyFileOfType("image/");
+	return path;
+}
+
+
+BPath
+Song::_SimilarFileOfType(const char* mimeRoot)
+{
+	return _FindFile(mimeRoot, true);
+}
+
+
+BPath
+Song::_AnyFileOfType(const char* mimeRoot)
+{
+	return _FindFile(mimeRoot, false);
+}
+
+
+BPath
+Song::_FindFile(const char* mimeRoot, bool byName)
 {
 	BString leaf(_FileLeaf());
 	BPath parentPath;
@@ -64,10 +104,14 @@ Song::_LyricsPath()
 		entry.GetPath(&entryPath);
 		BString entryLeaf(entryPath.Leaf());
 
-		if (entryLeaf != leaf && entryLeaf.FindFirst(leaf) >= 0) {
+		bool nameAgrees = (entryLeaf != leaf && entryLeaf.FindFirst(leaf) >= 0);
+
+		if (byName == false || nameAgrees == true) {
 			BString mimeType;
 			node.SetTo(&entry);
-			if (node.ReadAttrString("BEOS:TYPE", &mimeType) == B_OK && mimeType.StartsWith("text/"))
+			if (mimeRoot == NULL ||
+					(node.ReadAttrString("BEOS:TYPE", &mimeType) == B_OK
+					 && mimeType.StartsWith(mimeRoot)))
 				return entryPath;
 		}
 	}
