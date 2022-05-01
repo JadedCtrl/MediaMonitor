@@ -58,32 +58,10 @@ LyricsTextView::MouseDown(BPoint where)
 	Window()->CurrentMessage()->FindInt32("buttons", (int32*)&buttons);
 
 	if (buttons & B_SECONDARY_MOUSE_BUTTON)
-		_RightClickPopUp(where)->Go(ConvertToScreen(where), true, false);
+		((LyricsView*)Parent()->Parent())->MouseDown(
+			Parent()->ConvertToParent(ConvertToParent(where)));
 	else
 		BTextView::MouseDown(where);
-}
-
-
-BPopUpMenu*
-LyricsTextView::_RightClickPopUp(BPoint where)
-{
-	BPopUpMenu* menu = new BPopUpMenu("rightClickPopUp");
-	BMenuItem* copy =
-		new BMenuItem("Copy", new BMessage(B_COPY), 'C', B_COMMAND_KEY);
-	BMenuItem* selectAll = new BMenuItem("Select all",
-		new BMessage(B_SELECT_ALL), 'A', B_COMMAND_KEY);
-
-	int32 start = -1, end = -1;
-	GetSelection(&start, &end);
-
-	copy->SetEnabled(start >= 0 && end > 0);
-	copy->SetTarget(this);
-	menu->AddItem(copy);
-
-	selectAll->SetTarget(this);
-	menu->AddItem(selectAll);
-
-	return menu;
 }
 
 
@@ -92,10 +70,10 @@ LyricsView::LyricsView(BRect frame)
 	BView(frame, "Lyrics", B_FOLLOW_ALL_SIDES, B_WILL_DRAW | B_TRANSPARENT_BACKGROUND | B_PULSE_NEEDED)
 {
 	BRect dragRect(0, 0, 10, frame.Height());
-	BDragger* airdrag = new BDragger(dragRect, this,
+	fDragger = new BDragger(dragRect, this,
 		B_FOLLOW_LEFT | B_FOLLOW_BOTTOM, B_WILL_DRAW);
-	airdrag->SetViewColor(B_TRANSPARENT_COLOR);
-	AddChild(airdrag);
+	fDragger->SetViewColor(B_TRANSPARENT_COLOR);
+	AddChild(fDragger);
 
 	BRect textRect(0, 0, Bounds().Width(), Bounds().Height() - 10);
 	fTextView = new LyricsTextView(textRect, "lyricsText", textRect,
@@ -108,7 +86,10 @@ LyricsView::LyricsView(BRect frame)
 	fScrollView->ScrollBar(B_VERTICAL)->Hide();
 	AddChild(fScrollView);
 
-	fTransparentInactivity = false;
+	fAutoScroll = false;
+	fTransparentInactivity = true;
+	fTransparentDragger = false;
+
 	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
 	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
 
@@ -120,15 +101,21 @@ LyricsView::LyricsView(BMessage* data)
 	:
 	BView(data)
 {
-	fTransparentInactivity = false;
+	fAutoScroll = false;
+	fTransparentInactivity = true;
+	fTransparentDragger = false;
+
 	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
 	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
 
 	fTextView = dynamic_cast<LyricsTextView*>(FindView("lyricsText"));
 	fScrollView = dynamic_cast<BScrollView*>(FindView("scrollView"));
+	fDragger = dynamic_cast<BDragger*>(FindView("_dragger_"));
 	data->FindColor("background_color", &fBgColor);
 	data->FindColor("foreground_color", &fFgColor);
+	data->FindBool("autoscroll", &fAutoScroll);
 	data->FindBool("transparent_inactivity", &fTransparentInactivity);
+	data->FindBool("transparent_dragger", &fTransparentDragger);
 
 	_Init(Frame());
 }
@@ -140,10 +127,13 @@ LyricsView::Archive(BMessage* data, bool deep) const
 	status_t status = BView::Archive(data, deep);
 	data->AddColor("background_color", fBgColor);
 	data->AddColor("foreground_color", fFgColor);
+	data->AddBool("autoscroll", fAutoScroll);
 	data->AddBool("transparent_inactivity", fTransparentInactivity);
+	data->AddBool("transparent_dragger", fTransparentDragger);
 
 	data->AddString("class", "LyricsView");
 	data->AddString("add_on", "application/x-vnd.mediamonitor");
+	data->PrintToStream();
 	return status;	
 }
 
@@ -178,8 +168,24 @@ LyricsView::MessageReceived(BMessage* msg)
 			_UpdateColors();
 			break;
 		}
+		case LYRICS_AUTO_SCROLL:
+			fAutoScroll = !fAutoScroll;
+			break;
+		case LYRICS_TRANSPARENTLY_INACTIVE:
+		case LYRICS_TRANSPARENTLY_DRAG: {
+			if (msg->what == LYRICS_TRANSPARENTLY_INACTIVE)
+				fTransparentInactivity = !fTransparentInactivity;
+			if (msg->what == LYRICS_TRANSPARENTLY_DRAG)
+				fTransparentDragger = !fTransparentDragger;
+
+			if (fCurrentPath.IsEmpty() == true)
+				_ClearText();
+			break;
+		}
+		default:
+			BView::MessageReceived(msg);
+			break;
 	}
-	BView::MessageReceived(msg);
 }
 
 
@@ -197,6 +203,23 @@ LyricsView::Pulse()
 		fCurrentPath = path;
 		_ClearText();
 	}
+
+	if (fAutoScroll == true) {
+		float position = _GetPositionProportion();
+		if (position > 0)
+			fTextView->ScrollToOffset(fTextView->TextLength() * position);
+	}
+}
+
+
+void
+LyricsView::MouseDown(BPoint where)
+{
+	uint32 buttons = 0;
+	Window()->CurrentMessage()->FindInt32("buttons", (int32*)&buttons);
+
+	if (buttons & B_SECONDARY_MOUSE_BUTTON)
+		_RightClickPopUp()->Go(ConvertToScreen(where), true, false, true);
 }
 
 
@@ -214,6 +237,8 @@ LyricsView::_SetText(const char* text)
 {
 	if (fScrollView->IsHidden() == true)
 		fScrollView->Show();
+	if (fDragger->IsHidden() == true)
+		fDragger->Show();
 
 	fTextView->SetText(text);
 	fTextView->SetAlignment(B_ALIGN_LEFT);
@@ -223,8 +248,17 @@ LyricsView::_SetText(const char* text)
 void
 LyricsView::_ClearText()
 {
-	if (fScrollView->IsHidden() == false && fTransparentInactivity == true)
-		fScrollView->Hide();
+	if (fTransparentInactivity == true) {
+		if (fScrollView->IsHidden() == false)
+			fScrollView->Hide();
+		if (fDragger->IsHidden() == false && fTransparentDragger == true)
+			fDragger->Hide();
+	} else {
+		if (fScrollView->IsHidden() == true)
+			fScrollView->Show();
+		if (fDragger->IsHidden() == true)
+			fDragger->Show();
+	}
 
 	fTextView->SetText("No lyrics to display!");
 	fTextView->SetAlignment(B_ALIGN_CENTER);
@@ -253,6 +287,53 @@ LyricsView::_UpdateColors()
 }
 
 
+BPopUpMenu*
+LyricsView::_RightClickPopUp()
+{
+	BPopUpMenu* menu = new BPopUpMenu("rightClickPopUp");
+	menu->SetRadioMode(false);
+
+	BMenuItem* copy =
+		new BMenuItem("Copy", new BMessage(B_COPY), 'C', B_COMMAND_KEY);
+
+	int32 start = -1, end = -1;
+	fTextView->GetSelection(&start, &end);
+
+	copy->SetEnabled(start >= 0 && end > 0);
+	copy->SetTarget(fTextView);
+	menu->AddItem(copy);
+
+	BMenuItem* selectAll = new BMenuItem("Select all",
+		new BMessage(B_SELECT_ALL), 'A', B_COMMAND_KEY);
+	selectAll->SetTarget(fTextView);
+	menu->AddItem(selectAll);
+
+	menu->AddSeparatorItem();
+
+	BMenuItem* autoScroll = new BMenuItem("Auto-scroll",
+		new BMessage(LYRICS_AUTO_SCROLL));
+	autoScroll->SetMarked(fAutoScroll);
+	autoScroll->SetTarget(this);
+	menu->AddItem(autoScroll);
+
+	BMenu* hideMenu = new BMenu("Hide when inactive");
+	menu->AddItem(hideMenu);
+
+	BMenuItem* hideInactive = hideMenu->Superitem();
+	hideInactive->SetMessage(new BMessage(LYRICS_TRANSPARENTLY_INACTIVE));
+	hideInactive->SetMarked(fTransparentInactivity);
+	hideInactive->SetTarget(this);
+
+	BMenuItem* hideDragger = new BMenuItem("… including the dragger",
+		new BMessage(LYRICS_TRANSPARENTLY_DRAG));
+	hideDragger->SetMarked(fTransparentDragger);
+	hideDragger->SetTarget(this);
+	hideMenu->AddItem(hideDragger);
+
+	return menu;
+}
+
+
 BString
 LyricsView::_GetCurrentPath()
 {
@@ -265,4 +346,30 @@ LyricsView::_GetCurrentPath()
 	BString result;
 	reply.FindString("result", &result);
 	return result.ReplaceAll("file://", "");
+}
+
+
+float
+LyricsView::_GetPositionProportion()
+{
+	int64 position = _GetIntProperty("Position");
+	int64 duration = _GetIntProperty("Duration");
+	if (position >= 0 && duration > 0)
+		return (float)position / (float)duration;
+	return -1.0;
+}
+
+
+int64
+LyricsView::_GetIntProperty(const char* specifier)
+{
+	BMessage message, reply;
+	message.what = B_GET_PROPERTY;
+	message.AddSpecifier(specifier);
+	message.AddSpecifier("Window", 0);
+	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, &reply);
+
+	int64 result = -1;
+	reply.FindInt64("result", &result);
+	return result;
 }
