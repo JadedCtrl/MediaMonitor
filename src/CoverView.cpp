@@ -67,7 +67,7 @@ CoverView::Pulse()
 		delete fCover;
 		fCover = song.Cover();
 		Invalidate();
-	} else if (path.IsEmpty() == true && path != fCurrentPath) {
+	} else if (path.IsEmpty() && path != fCurrentPath) {
 		fCurrentPath = path;
 		delete fCover;
 		Invalidate();
@@ -80,7 +80,7 @@ CoverView::Draw(BRect updateRect)
 {
 	BView::Draw(updateRect);
 
-	if (fCover != NULL)
+	if (fCover != NULL && fCover->IsValid())
 		DrawBitmap(fCover, Bounds());
 }
 
@@ -91,6 +91,7 @@ CoverView::_GetCurrentPath()
 	BMessage message, reply;
 	message.what = B_GET_PROPERTY;
 	message.AddSpecifier("URI");
+	message.AddSpecifier("CurrentTrack");
 	message.AddSpecifier("Window", 0);
 	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, &reply);
 

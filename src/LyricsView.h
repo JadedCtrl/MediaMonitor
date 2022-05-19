@@ -57,7 +57,7 @@ private:
 
 	BString            _GetCurrentPath();
 	float              _GetPositionProportion();
-	int64              _GetIntProperty(const char* specifier);
+	int64              _GetIntProperty(const char* specifier, bool currentTrack = false);
 
 	LyricsTextView* fTextView;
 	BScrollView* fScrollView;

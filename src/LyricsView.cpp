@@ -178,7 +178,7 @@ LyricsView::MessageReceived(BMessage* msg)
 			if (msg->what == LYRICS_TRANSPARENTLY_DRAG)
 				fTransparentDragger = !fTransparentDragger;
 
-			if (fCurrentPath.IsEmpty() == true)
+			if (fCurrentPath.IsEmpty())
 				_ClearText();
 			break;
 		}
@@ -199,12 +199,12 @@ LyricsView::Pulse()
 		BString lyrics;
 		song.Lyrics(&lyrics);
 		_SetText(lyrics.String());
-	} else if (path.IsEmpty() == true && path != fCurrentPath) {
+	} else if (path.IsEmpty() && path != fCurrentPath) {
 		fCurrentPath = path;
 		_ClearText();
 	}
 
-	if (fAutoScroll == true) {
+	if (fAutoScroll) {
 		float position = _GetPositionProportion();
 		if (position > 0)
 			fTextView->ScrollToOffset(fTextView->TextLength() * position);
@@ -235,9 +235,9 @@ LyricsView::_Init(BRect frame)
 void
 LyricsView::_SetText(const char* text)
 {
-	if (fScrollView->IsHidden() == true)
+	if (fScrollView->IsHidden())
 		fScrollView->Show();
-	if (fDragger->IsHidden() == true)
+	if (fDragger->IsHidden())
 		fDragger->Show();
 
 	fTextView->SetText(text);
@@ -248,15 +248,15 @@ LyricsView::_SetText(const char* text)
 void
 LyricsView::_ClearText()
 {
-	if (fTransparentInactivity == true) {
-		if (fScrollView->IsHidden() == false)
+	if (fTransparentInactivity) {
+		if (fScrollView->IsHidden())
 			fScrollView->Hide();
-		if (fDragger->IsHidden() == false && fTransparentDragger == true)
+		if (fDragger->IsHidden() && fTransparentDragger)
 			fDragger->Hide();
 	} else {
-		if (fScrollView->IsHidden() == true)
+		if (fScrollView->IsHidden())
 			fScrollView->Show();
-		if (fDragger->IsHidden() == true)
+		if (fDragger->IsHidden())
 			fDragger->Show();
 	}
 
@@ -340,6 +340,7 @@ LyricsView::_GetCurrentPath()
 	BMessage message, reply;
 	message.what = B_GET_PROPERTY;
 	message.AddSpecifier("URI");
+	message.AddSpecifier("CurrentTrack");
 	message.AddSpecifier("Window", 0);
 	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, &reply);
 
@@ -353,7 +354,7 @@ float
 LyricsView::_GetPositionProportion()
 {
 	int64 position = _GetIntProperty("Position");
-	int64 duration = _GetIntProperty("Duration");
+	int64 duration = _GetIntProperty("Duration", true);
 	if (position >= 0 && duration > 0)
 		return (float)position / (float)duration;
 	return -1.0;
@@ -361,11 +362,13 @@ LyricsView::_GetPositionProportion()
 
 
 int64
-LyricsView::_GetIntProperty(const char* specifier)
+LyricsView::_GetIntProperty(const char* specifier, bool currentItem)
 {
 	BMessage message, reply;
 	message.what = B_GET_PROPERTY;
 	message.AddSpecifier(specifier);
+	if (currentItem)
+		message.AddSpecifier("CurrentTrack");
 	message.AddSpecifier("Window", 0);
 	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, &reply);
 
