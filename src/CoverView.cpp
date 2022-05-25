@@ -9,7 +9,7 @@
 #include <Dragger.h>
 #include <Messenger.h>
 
-#include "Song.h"
+#include "MediaPlayer.h"
 
 
 CoverView::CoverView(BRect frame)
@@ -22,6 +22,8 @@ CoverView::CoverView(BRect frame)
 	fDragger->SetViewColor(B_TRANSPARENT_COLOR);
 	AddChild(fDragger);
 
+	fMediaPlayer = new MediaPlayer(0);
+
 	fCover = NULL;
 	SetViewColor(B_TRANSPARENT_COLOR);
 	Pulse();
@@ -32,6 +34,10 @@ CoverView::CoverView(BMessage* data)
 	:
 	BView(data)
 {
+	BMessage mediaplayer;
+	data->FindMessage("mediaplayer", &mediaplayer);
+	fMediaPlayer = new MediaPlayer(&mediaplayer);
+
 	fCover = NULL;
 	SetViewColor(B_TRANSPARENT_COLOR);
 	Pulse();
@@ -42,6 +48,10 @@ status_t
 CoverView::Archive(BMessage* data, bool deep) const
 {
 	status_t status = BView::Archive(data, deep);
+
+	BMessage mediaPlayer;
+	fMediaPlayer->Archive(&mediaPlayer);
+	data->AddMessage("mediaplayer", &mediaPlayer);
 	data->AddString("class", "CoverView");
 	data->AddString("add_on", "application/x-vnd.mediamonitor");
 	return status;	
@@ -60,16 +70,17 @@ CoverView::Instantiate(BMessage* data)
 void
 CoverView::Pulse()
 {
-	BString path = _GetCurrentPath();
-	if (path.IsEmpty() == false && path != fCurrentPath) {
-		fCurrentPath = path;
-		Song song(path.String());
+	Song song;
+	if (fMediaPlayer->CurrentItem(&song, false) == false) {
+		if (fCurrentSong.InitCheck()) {
+			fCurrentSong = song;
+			delete fCover;
+			Invalidate();
+		}
+	} else if (song != fCurrentSong) {
+		fCurrentSong = song;
 		delete fCover;
 		fCover = song.Cover();
-		Invalidate();
-	} else if (path.IsEmpty() && path != fCurrentPath) {
-		fCurrentPath = path;
-		delete fCover;
 		Invalidate();
 	}
 }
@@ -82,20 +93,4 @@ CoverView::Draw(BRect updateRect)
 
 	if (fCover != NULL && fCover->IsValid())
 		DrawBitmap(fCover, Bounds());
-}
-
-
-BString
-CoverView::_GetCurrentPath()
-{
-	BMessage message, reply;
-	message.what = B_GET_PROPERTY;
-	message.AddSpecifier("URI");
-	message.AddSpecifier("CurrentTrack");
-	message.AddSpecifier("Window", 0);
-	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, &reply);
-
-	BString result;
-	reply.FindString("result", &result);
-	return result.ReplaceAll("file://", "");
 }

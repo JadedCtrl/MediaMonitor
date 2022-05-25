@@ -7,7 +7,10 @@
 
 #include <View.h>
 
+#include "Song.h"
+
 class BDragger;
+class MediaPlayer;
 
 
 class CoverView : public BView {
@@ -24,12 +27,12 @@ public:
 
 private:
 	void               _Init(BRect frame);
-	BString            _GetCurrentPath();
-	BString            _GetCoverPath();
+
+	MediaPlayer* fMediaPlayer;
+	Song fCurrentSong;
 
 	BDragger* fDragger;
 	BBitmap* fCover;
-	BString fCurrentPath;
 };
 
 #endif // COVERVIEW_H

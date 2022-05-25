@@ -7,9 +7,12 @@
 
 #include <TextView.h>
 
+#include "Song.h"
+
 class BDragger;
 class BPopUpMenu;
 class BScrollView;
+class MediaPlayer;
 
 
 enum {
@@ -55,9 +58,10 @@ private:
 
 	BPopUpMenu*        _RightClickPopUp();
 
-	BString            _GetCurrentPath();
 	float              _GetPositionProportion();
-	int64              _GetIntProperty(const char* specifier, bool currentTrack = false);
+
+	MediaPlayer* fMediaPlayer;
+	Song fCurrentSong;
 
 	LyricsTextView* fTextView;
 	BScrollView* fScrollView;
@@ -69,7 +73,6 @@ private:
 
 	rgb_color fBgColor;
 	rgb_color fFgColor;
-	BString fCurrentPath;
 };
 
 #endif // LYRICSVIEW_H

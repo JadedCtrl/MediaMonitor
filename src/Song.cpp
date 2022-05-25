@@ -13,9 +13,22 @@
 #include <TranslationUtils.h>
 
 
-Song::Song(const char* path)
+Song::Song()
+{
+}
+
+
+Song::Song(const char* path, int64 duration)
 {
 	fPath = BPath(path);
+	fDuration = duration;
+}
+
+
+bool
+Song::InitCheck()
+{
+	return fPath.InitCheck() == B_OK && fDuration >= -1;
 }
 
 
@@ -41,6 +54,20 @@ BBitmap*
 Song::Cover()
 {
 	return BTranslationUtils::GetBitmapFile(_CoverPath().Path());
+}
+
+
+BPath
+Song::Path()
+{
+	return fPath;
+}
+
+
+int64
+Song::Duration()
+{
+	return fDuration;
 }
 
 

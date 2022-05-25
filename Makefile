@@ -32,9 +32,10 @@ APP_MIME_SIG = application/x-vnd.mediamonitor
 #	same name (source.c or source.cpp) are included from different directories.
 #	Also note that spaces in folder names do not work well with this Makefile.
 SRCS = src/App.cpp \
-	src/MainWindow.cpp \
 	src/CoverView.cpp \
 	src/LyricsView.cpp \
+	src/MainWindow.cpp \
+	src/MediaPlayer.cpp \
 	src/Song.cpp
 
 #	Specify the resource definition files to use. Full or relative paths can be

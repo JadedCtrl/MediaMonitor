@@ -5,8 +5,6 @@
 
 #include "LyricsView.h"
 
-#include <cstdio>
-
 #include <Dragger.h>
 #include <MenuItem.h>
 #include <Messenger.h>
@@ -14,7 +12,7 @@
 #include <ScrollView.h>
 #include <Window.h>
 
-#include "Song.h"
+#include "MediaPlayer.h"
 
 
 LyricsTextView::LyricsTextView(BRect frame, const char* name, BRect textFrame,
@@ -93,6 +91,8 @@ LyricsView::LyricsView(BRect frame)
 	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
 	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
 
+	fMediaPlayer = new MediaPlayer(0);
+
 	_Init(frame);
 }
 
@@ -117,6 +117,10 @@ LyricsView::LyricsView(BMessage* data)
 	data->FindBool("transparent_inactivity", &fTransparentInactivity);
 	data->FindBool("transparent_dragger", &fTransparentDragger);
 
+	BMessage mediaplayer;
+	data->FindMessage("mediaplayer", &mediaplayer);
+	fMediaPlayer = new MediaPlayer(&mediaplayer);
+
 	_Init(Frame());
 }
 
@@ -125,15 +129,19 @@ status_t
 LyricsView::Archive(BMessage* data, bool deep) const
 {
 	status_t status = BView::Archive(data, deep);
+
+	BMessage mediaPlayer;
+	fMediaPlayer->Archive(&mediaPlayer);
+	data->AddMessage("mediaplayer", &mediaPlayer);
 	data->AddColor("background_color", fBgColor);
 	data->AddColor("foreground_color", fFgColor);
 	data->AddBool("autoscroll", fAutoScroll);
 	data->AddBool("transparent_inactivity", fTransparentInactivity);
 	data->AddBool("transparent_dragger", fTransparentDragger);
 
+
 	data->AddString("class", "LyricsView");
 	data->AddString("add_on", "application/x-vnd.mediamonitor");
-	data->PrintToStream();
 	return status;	
 }
 
@@ -178,7 +186,7 @@ LyricsView::MessageReceived(BMessage* msg)
 			if (msg->what == LYRICS_TRANSPARENTLY_DRAG)
 				fTransparentDragger = !fTransparentDragger;
 
-			if (fCurrentPath.IsEmpty())
+			if (fCurrentSong.InitCheck() == false)
 				_ClearText();
 			break;
 		}
@@ -192,16 +200,20 @@ LyricsView::MessageReceived(BMessage* msg)
 void
 LyricsView::Pulse()
 {
-	BString path = _GetCurrentPath();
-	if (path.IsEmpty() == false && path != fCurrentPath) {
-		fCurrentPath = path;
-		Song song(path.String());
+	Song song;
+	if (fMediaPlayer->CurrentItem(&song, fAutoScroll) == false) {
+		if (fCurrentSong.InitCheck()) {
+			fCurrentSong = song;
+			_ClearText();
+		}
+		return;
+	}
+
+	if (song != fCurrentSong) {
+		fCurrentSong = song;
 		BString lyrics;
 		song.Lyrics(&lyrics);
 		_SetText(lyrics.String());
-	} else if (path.IsEmpty() && path != fCurrentPath) {
-		fCurrentPath = path;
-		_ClearText();
 	}
 
 	if (fAutoScroll) {
@@ -334,45 +346,12 @@ LyricsView::_RightClickPopUp()
 }
 
 
-BString
-LyricsView::_GetCurrentPath()
-{
-	BMessage message, reply;
-	message.what = B_GET_PROPERTY;
-	message.AddSpecifier("URI");
-	message.AddSpecifier("CurrentTrack");
-	message.AddSpecifier("Window", 0);
-	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, &reply);
-
-	BString result;
-	reply.FindString("result", &result);
-	return result.ReplaceAll("file://", "");
-}
-
-
 float
 LyricsView::_GetPositionProportion()
 {
-	int64 position = _GetIntProperty("Position");
-	int64 duration = _GetIntProperty("Duration", true);
+	int64 position = fMediaPlayer->Position();
+	int64 duration = fCurrentSong.Duration();
 	if (position >= 0 && duration > 0)
 		return (float)position / (float)duration;
 	return -1.0;
-}
-
-
-int64
-LyricsView::_GetIntProperty(const char* specifier, bool currentItem)
-{
-	BMessage message, reply;
-	message.what = B_GET_PROPERTY;
-	message.AddSpecifier(specifier);
-	if (currentItem)
-		message.AddSpecifier("CurrentTrack");
-	message.AddSpecifier("Window", 0);
-	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, &reply);
-
-	int64 result = -1;
-	reply.FindInt64("result", &result);
-	return result;
 }

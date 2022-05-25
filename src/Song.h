@@ -11,9 +11,31 @@ class BBitmap;
 
 class Song {
 public:
-	            Song(const char* path);
-	   status_t Lyrics(BString* buffer);
-	   BBitmap* Cover();
+	            Song();
+	            Song(const char* path, int64 duration = -1);
+
+	bool        InitCheck();
+
+	status_t    Lyrics(BString* buffer);
+	BBitmap*    Cover();
+
+	BPath       Path();
+	int64       Duration();
+
+	int operator ==(Song a)
+	{
+		if (a.Path() == fPath)
+			return 1;
+		return 0;
+	}
+
+
+	int operator !=(Song a)
+	{
+		if (a.Path() != fPath)
+			return 1;
+		return 0;
+	}
 
 private:
 	const char* _FileLeaf();
@@ -24,6 +46,7 @@ private:
 	BPath       _AnyFileOfType(const char* mimeRoot);
 	BPath       _FindFile(const char* mimeRoot, bool byName);
 
+	int64 fDuration;
 	BPath fPath;
 };
 
