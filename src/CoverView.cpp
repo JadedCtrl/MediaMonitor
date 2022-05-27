@@ -75,11 +75,13 @@ CoverView::Pulse()
 		if (fCurrentSong.InitCheck()) {
 			fCurrentSong = song;
 			delete fCover;
+			fCover = NULL;
 			Invalidate();
 		}
 	} else if (song != fCurrentSong) {
 		fCurrentSong = song;
-		delete fCover;
+		if (fCover != NULL)
+			delete fCover;
 		fCover = song.Cover();
 		Invalidate();
 	}
