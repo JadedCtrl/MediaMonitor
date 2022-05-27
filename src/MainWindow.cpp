@@ -14,7 +14,7 @@
 
 MainWindow::MainWindow()
 	:
-	BWindow(BRect(BPoint(0,0),BSize(500.0, 500.0)), "MediaMonitor",
+	BWindow(BRect(BPoint(0,0),BSize(500.0, 500.0)), APP_NAME,
 		B_TITLED_WINDOW, B_AUTO_UPDATE_SIZE_LIMITS | B_QUIT_ON_WINDOW_CLOSE)
 {
 	SetPulseRate(0);

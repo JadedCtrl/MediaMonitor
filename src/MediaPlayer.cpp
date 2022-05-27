@@ -31,7 +31,7 @@ MediaPlayer::Archive(BMessage* data, bool deep) const
 	status_t status = BArchivable::Archive(data, deep);
 	data->AddInt32("_window", fWindowIndex);
 	data->AddString("class", "MediaPlayer");
-	data->AddString("add_on", "application/x-vnd.mediamonitor");
+	data->AddString("add_on", APP_SIGNATURE);
 	return status;
 }
 

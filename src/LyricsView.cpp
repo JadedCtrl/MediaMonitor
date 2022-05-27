@@ -5,9 +5,7 @@
 
 #include "LyricsView.h"
 
-#include <Dragger.h>
 #include <MenuItem.h>
-#include <Messenger.h>
 #include <PopUpMenu.h>
 #include <ScrollView.h>
 #include <Window.h>
@@ -35,7 +33,7 @@ LyricsTextView::Archive(BMessage* data, bool deep) const
 {
 	status_t status = BTextView::Archive(data, deep);
 	data->AddString("class", "LyricsTextView");
-	data->AddString("add_on", "application/x-vnd.mediamonitor");
+	data->AddString("add_on", APP_SIGNATURE);
 	return status;
 }
 
@@ -65,14 +63,8 @@ LyricsTextView::MouseDown(BPoint where)
 
 LyricsView::LyricsView(BRect frame)
 	:
-	BView(frame, "Lyrics", B_FOLLOW_ALL_SIDES, B_WILL_DRAW | B_TRANSPARENT_BACKGROUND | B_PULSE_NEEDED)
+	ReplicantView(frame, "Lyrics", B_FOLLOW_LEFT)
 {
-	BRect dragRect(0, 0, 10, frame.Height());
-	fDragger = new BDragger(dragRect, this,
-		B_FOLLOW_LEFT | B_FOLLOW_BOTTOM, B_WILL_DRAW);
-	fDragger->SetViewColor(B_TRANSPARENT_COLOR);
-	AddChild(fDragger);
-
 	BRect textRect(0, 0, Bounds().Width(), Bounds().Height() - 10);
 	fTextView = new LyricsTextView(textRect, "lyricsText", textRect,
 		B_FOLLOW_ALL, B_WILL_DRAW);
@@ -85,13 +77,9 @@ LyricsView::LyricsView(BRect frame)
 	AddChild(fScrollView);
 
 	fAutoScroll = false;
-	fTransparentInactivity = true;
-	fTransparentDragger = false;
 
 	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
 	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
-
-	fMediaPlayer = new MediaPlayer(0);
 
 	_Init(frame);
 }
@@ -99,27 +87,18 @@ LyricsView::LyricsView(BRect frame)
 
 LyricsView::LyricsView(BMessage* data)
 	:
-	BView(data)
+	ReplicantView(data)
 {
 	fAutoScroll = false;
-	fTransparentInactivity = true;
-	fTransparentDragger = false;
 
 	fFgColor = ui_color(B_PANEL_TEXT_COLOR);
 	fBgColor = ui_color(B_PANEL_BACKGROUND_COLOR);
 
 	fTextView = dynamic_cast<LyricsTextView*>(FindView("lyricsText"));
 	fScrollView = dynamic_cast<BScrollView*>(FindView("scrollView"));
-	fDragger = dynamic_cast<BDragger*>(FindView("_dragger_"));
 	data->FindColor("background_color", &fBgColor);
 	data->FindColor("foreground_color", &fFgColor);
 	data->FindBool("autoscroll", &fAutoScroll);
-	data->FindBool("transparent_inactivity", &fTransparentInactivity);
-	data->FindBool("transparent_dragger", &fTransparentDragger);
-
-	BMessage mediaplayer;
-	data->FindMessage("mediaplayer", &mediaplayer);
-	fMediaPlayer = new MediaPlayer(&mediaplayer);
 
 	_Init(Frame());
 }
@@ -128,20 +107,14 @@ LyricsView::LyricsView(BMessage* data)
 status_t
 LyricsView::Archive(BMessage* data, bool deep) const
 {
-	status_t status = BView::Archive(data, deep);
+	status_t status = ReplicantView::Archive(data, deep);
 
-	BMessage mediaPlayer;
-	fMediaPlayer->Archive(&mediaPlayer);
-	data->AddMessage("mediaplayer", &mediaPlayer);
 	data->AddColor("background_color", fBgColor);
 	data->AddColor("foreground_color", fFgColor);
 	data->AddBool("autoscroll", fAutoScroll);
-	data->AddBool("transparent_inactivity", fTransparentInactivity);
-	data->AddBool("transparent_dragger", fTransparentDragger);
-
 
 	data->AddString("class", "LyricsView");
-	data->AddString("add_on", "application/x-vnd.mediamonitor");
+	data->AddString("add_on", APP_SIGNATURE);
 	return status;	
 }
 
@@ -179,19 +152,8 @@ LyricsView::MessageReceived(BMessage* msg)
 		case LYRICS_AUTO_SCROLL:
 			fAutoScroll = !fAutoScroll;
 			break;
-		case LYRICS_TRANSPARENTLY_INACTIVE:
-		case LYRICS_TRANSPARENTLY_DRAG: {
-			if (msg->what == LYRICS_TRANSPARENTLY_INACTIVE)
-				fTransparentInactivity = !fTransparentInactivity;
-			if (msg->what == LYRICS_TRANSPARENTLY_DRAG)
-				fTransparentDragger = !fTransparentDragger;
-
-			if (fCurrentSong.InitCheck() == false)
-				_ClearText();
-			break;
-		}
 		default:
-			BView::MessageReceived(msg);
+			ReplicantView::MessageReceived(msg);
 			break;
 	}
 }
@@ -201,19 +163,22 @@ void
 LyricsView::Pulse()
 {
 	Song song;
+	// No song
 	if (fMediaPlayer->CurrentItem(&song, fAutoScroll) == false) {
 		if (fCurrentSong.InitCheck()) {
 			fCurrentSong = song;
-			_ClearText();
+			SetInactive(true);
 		}
 		return;
 	}
 
+	// New song
 	if (song != fCurrentSong) {
 		fCurrentSong = song;
 		BString lyrics;
 		song.Lyrics(&lyrics);
-		_SetText(lyrics.String());
+		fTextView->SetText(lyrics.String());
+		SetInactive(false);
 	}
 
 	if (fAutoScroll) {
@@ -224,86 +189,11 @@ LyricsView::Pulse()
 }
 
 
-void
-LyricsView::MouseDown(BPoint where)
-{
-	uint32 buttons = 0;
-	Window()->CurrentMessage()->FindInt32("buttons", (int32*)&buttons);
-
-	if (buttons & B_SECONDARY_MOUSE_BUTTON)
-		_RightClickPopUp()->Go(ConvertToScreen(where), true, false, true);
-}
-
-
-void
-LyricsView::_Init(BRect frame)
-{
-	_ClearText();
-	_UpdateColors();
-	Pulse();
-}
-
-
-void
-LyricsView::_SetText(const char* text)
-{
-	if (fScrollView->IsHidden())
-		fScrollView->Show();
-	if (fDragger->IsHidden())
-		fDragger->Show();
-
-	fTextView->SetText(text);
-	fTextView->SetAlignment(B_ALIGN_LEFT);
-}
-
-
-void
-LyricsView::_ClearText()
-{
-	if (fTransparentInactivity) {
-		if (fScrollView->IsHidden())
-			fScrollView->Hide();
-		if (fDragger->IsHidden() && fTransparentDragger)
-			fDragger->Hide();
-	} else {
-		if (fScrollView->IsHidden())
-			fScrollView->Show();
-		if (fDragger->IsHidden())
-			fDragger->Show();
-	}
-
-	fTextView->SetText("No lyrics to display!");
-	fTextView->SetAlignment(B_ALIGN_CENTER);
-}
-
-
-void
-LyricsView::_UpdateColors()
-{
-	SetViewColor(B_TRANSPARENT_COLOR);
-	fScrollView->SetViewColor(B_TRANSPARENT_COLOR);
-	fTextView->SetViewColor(fBgColor);
-
-	text_run run;
-	run.color = fFgColor;
-	run.font = be_plain_font;
-	run.offset = 0;
-
-	text_run_array run_array;
-	run_array.count = 1;
-	run_array.runs[0] = run;
-	fTextView->SetRunArray(0, fTextView->TextLength(), &run_array);
-
-	Invalidate();
-	fTextView->Invalidate();
-}
-
-
 BPopUpMenu*
-LyricsView::_RightClickPopUp()
+LyricsView::RightClickPopUp(BPopUpMenu* menu)
 {
-	BPopUpMenu* menu = new BPopUpMenu("rightClickPopUp");
-	menu->SetRadioMode(false);
+	if (menu == NULL)
+		menu = new BPopUpMenu("rightClickPopUp");
 
 	BMenuItem* copy =
 		new BMenuItem("Copy", new BMessage(B_COPY), 'C', B_COMMAND_KEY);
@@ -328,21 +218,56 @@ LyricsView::_RightClickPopUp()
 	autoScroll->SetTarget(this);
 	menu->AddItem(autoScroll);
 
-	BMenu* hideMenu = new BMenu("Hide when inactive");
-	menu->AddItem(hideMenu);
+	return ReplicantView::RightClickPopUp(menu);
+}
 
-	BMenuItem* hideInactive = hideMenu->Superitem();
-	hideInactive->SetMessage(new BMessage(LYRICS_TRANSPARENTLY_INACTIVE));
-	hideInactive->SetMarked(fTransparentInactivity);
-	hideInactive->SetTarget(this);
 
-	BMenuItem* hideDragger = new BMenuItem("… including the dragger",
-		new BMessage(LYRICS_TRANSPARENTLY_DRAG));
-	hideDragger->SetMarked(fTransparentDragger);
-	hideDragger->SetTarget(this);
-	hideMenu->AddItem(hideDragger);
+void
+LyricsView::SetInactive(bool inactive)
+{
+	if (inactive && fTransparentInactivity && !fScrollView->IsHidden())
+		fScrollView->Hide();
+	else if (!inactive && fScrollView->IsHidden())
+		fScrollView->Show();
 
-	return menu;
+	if (inactive) {
+		fTextView->SetText("No lyrics to display!");
+		fTextView->SetAlignment(B_ALIGN_CENTER);
+	} else
+		fTextView->SetAlignment(B_ALIGN_LEFT);
+
+	ReplicantView::SetInactive(inactive);
+}
+
+
+void
+LyricsView::_Init(BRect frame)
+{
+	SetInactive(true);
+	_UpdateColors();
+	Pulse();
+}
+
+
+void
+LyricsView::_UpdateColors()
+{
+	SetViewColor(B_TRANSPARENT_COLOR);
+	fScrollView->SetViewColor(B_TRANSPARENT_COLOR);
+	fTextView->SetViewColor(fBgColor);
+
+	text_run run;
+	run.color = fFgColor;
+	run.font = be_plain_font;
+	run.offset = 0;
+
+	text_run_array run_array;
+	run_array.count = 1;
+	run_array.runs[0] = run;
+	fTextView->SetRunArray(0, fTextView->TextLength(), &run_array);
+
+	Invalidate();
+	fTextView->Invalidate();
 }
 
 

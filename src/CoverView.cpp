@@ -14,32 +14,20 @@
 
 CoverView::CoverView(BRect frame)
 	:
-	BView(frame, "Cover", B_FOLLOW_ALL_SIDES, B_WILL_DRAW | B_TRANSPARENT_BACKGROUND | B_PULSE_NEEDED)
+	ReplicantView(frame, "Cover", B_FOLLOW_LEFT)
 {
-	BRect dragRect(0, 0, 10, frame.Height());
-	fDragger = new BDragger(dragRect, this,
-		B_FOLLOW_LEFT | B_FOLLOW_BOTTOM, B_WILL_DRAW);
-	fDragger->SetViewColor(B_TRANSPARENT_COLOR);
-	AddChild(fDragger);
-
-	fMediaPlayer = new MediaPlayer(0);
-
-	fCover = NULL;
 	SetViewColor(B_TRANSPARENT_COLOR);
+	fCover = NULL;
 	Pulse();
 }
 
 
 CoverView::CoverView(BMessage* data)
 	:
-	BView(data)
+	ReplicantView(data)
 {
-	BMessage mediaplayer;
-	data->FindMessage("mediaplayer", &mediaplayer);
-	fMediaPlayer = new MediaPlayer(&mediaplayer);
-
-	fCover = NULL;
 	SetViewColor(B_TRANSPARENT_COLOR);
+	fCover = NULL;
 	Pulse();
 }
 
@@ -47,13 +35,10 @@ CoverView::CoverView(BMessage* data)
 status_t
 CoverView::Archive(BMessage* data, bool deep) const
 {
-	status_t status = BView::Archive(data, deep);
+	status_t status = ReplicantView::Archive(data, deep);
 
-	BMessage mediaPlayer;
-	fMediaPlayer->Archive(&mediaPlayer);
-	data->AddMessage("mediaplayer", &mediaPlayer);
 	data->AddString("class", "CoverView");
-	data->AddString("add_on", "application/x-vnd.mediamonitor");
+	data->AddString("add_on", APP_SIGNATURE);
 	return status;	
 }
 
@@ -71,19 +56,23 @@ void
 CoverView::Pulse()
 {
 	Song song;
+	// No song playing
 	if (fMediaPlayer->CurrentItem(&song, false) == false) {
 		if (fCurrentSong.InitCheck()) {
 			fCurrentSong = song;
 			delete fCover;
 			fCover = NULL;
-			Invalidate();
+
+			SetInactive(true);
 		}
+	// New song
 	} else if (song != fCurrentSong) {
 		fCurrentSong = song;
 		if (fCover != NULL)
 			delete fCover;
 		fCover = song.Cover();
-		Invalidate();
+
+		SetInactive(false);
 	}
 }
 
@@ -92,7 +81,6 @@ void
 CoverView::Draw(BRect updateRect)
 {
 	BView::Draw(updateRect);
-
 	if (fCover != NULL && fCover->IsValid())
 		DrawBitmap(fCover, Bounds());
 }

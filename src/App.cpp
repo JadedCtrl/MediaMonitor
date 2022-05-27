@@ -5,32 +5,15 @@
 
 #include "App.h"
 
-#include <iostream>
-
 #include "MainWindow.h"
-
-
-BString
-get_string_mediaplayer(const char* attribute)
-{
-	BMessage message, reply;
-	message.what = B_GET_PROPERTY;
-	message.AddSpecifier(attribute);
-	message.AddSpecifier("Window", 0);
-	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, &reply);
-
-	BString result;
-	reply.FindString("result", &result);
-	return result;
-}
 
 
 App::App()
 	:
-	BApplication("application/x-vnd.mediamonitor")
+	BApplication(APP_SIGNATURE)
 {
 	MainWindow* win = new MainWindow();
-	win->SetPulseRate(5000000);
+	win->SetPulseRate(2500000);
 	win->Show();
 }
 

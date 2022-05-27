@@ -36,6 +36,7 @@ SRCS = src/App.cpp \
 	src/LyricsView.cpp \
 	src/MainWindow.cpp \
 	src/MediaPlayer.cpp \
+	src/ReplicantView.cpp \
 	src/Song.cpp
 
 #	Specify the resource definition files to use. Full or relative paths can be
@@ -97,7 +98,9 @@ LOCALES =
 #	use. For example, setting DEFINES to "DEBUG=1" will cause the compiler
 #	option "-DDEBUG=1" to be used. Setting DEFINES to "DEBUG" would pass
 #	"-DDEBUG" on the compiler's command line.
-DEFINES =
+DEFINES = BUILD_DATE="\"$(shell date +"%Y-%m-%d %H:%M")\"" \
+	APP_NAME="\"$(NAME)"\" \
+	APP_SIGNATURE="\"$(APP_MIME_SIG)"\"
 
 #	Specify the warning level. Either NONE (suppress all warnings),
 #	ALL (enable all warnings), or leave blank (enable default warnings).

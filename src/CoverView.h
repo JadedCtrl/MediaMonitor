@@ -5,15 +5,14 @@
 #ifndef COVERVIEW_H
 #define COVERVIEW_H
 
-#include <View.h>
-
+#include "ReplicantView.h"
 #include "Song.h"
 
 class BDragger;
 class MediaPlayer;
 
 
-class CoverView : public BView {
+class CoverView : public ReplicantView {
 public:
 	                   CoverView(BRect frame);
 	                   CoverView(BMessage* archive);
@@ -28,10 +27,7 @@ public:
 private:
 	void               _Init(BRect frame);
 
-	MediaPlayer* fMediaPlayer;
 	Song fCurrentSong;
-
-	BDragger* fDragger;
 	BBitmap* fCover;
 };
 

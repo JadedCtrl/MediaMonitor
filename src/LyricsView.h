@@ -7,6 +7,7 @@
 
 #include <TextView.h>
 
+#include "ReplicantView.h"
 #include "Song.h"
 
 class BDragger;
@@ -35,41 +36,34 @@ public:
 };
 
 
-class LyricsView : public BView {
+class LyricsView : public ReplicantView {
 public:
-	                   LyricsView(BRect frame);
-	                   LyricsView(BMessage* archive);
+	                    LyricsView(BRect frame);
+	                    LyricsView(BMessage* archive);
 
-	virtual status_t   Archive(BMessage* data, bool deep = true) const;
-	static LyricsView* Instantiate(BMessage* data);
+	virtual status_t    Archive(BMessage* data, bool deep = true) const;
+	static LyricsView*  Instantiate(BMessage* data);
 
-	virtual void       MessageReceived(BMessage* msg);
-	virtual void       Pulse();
+	virtual void        MessageReceived(BMessage* msg);
+	virtual void        Pulse();
 
-	virtual void       MouseDown(BPoint where);
+	virtual BPopUpMenu* RightClickPopUp(BPopUpMenu* menu = NULL);
+
+	virtual void        SetInactive(bool inactive);
 
 private:
-	void               _Init(BRect frame);
+	void                _Init(BRect frame);
 
-	void               _SetText(const char* text);
-	void               _ClearText();
+	void                _UpdateColors();
 
-	void               _UpdateColors();
+	float               _GetPositionProportion();
 
-	BPopUpMenu*        _RightClickPopUp();
-
-	float              _GetPositionProportion();
-
-	MediaPlayer* fMediaPlayer;
 	Song fCurrentSong;
 
 	LyricsTextView* fTextView;
 	BScrollView* fScrollView;
-	BDragger* fDragger;
 
 	bool fAutoScroll;
-	bool fTransparentInactivity;
-	bool fTransparentDragger;
 
 	rgb_color fBgColor;
 	rgb_color fFgColor;
