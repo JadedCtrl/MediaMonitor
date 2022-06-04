@@ -5,12 +5,12 @@
 
 #include "Song.h"
 
-#include <iostream>
-
 #include <Directory.h>
 #include <File.h>
 #include <String.h>
 #include <TranslationUtils.h>
+
+#include "TextFile.h"
 
 
 Song::Song()
@@ -35,18 +35,17 @@ Song::InitCheck()
 status_t
 Song::Lyrics(BString* buffer)
 {
-	BFile file(_LyricsPath().Path(), B_READ_ONLY);
+	TextFile file(_LyricsPath().Path(), B_READ_ONLY);
 
-	off_t size = 0;
-	char* buf = NULL;
-	if (file.InitCheck() == B_OK && file.GetSize(&size) == B_OK) {
-		buf = (char*)malloc((size_t)size);
-		file.Read(buf, size);
-		*buffer << buf;
-		free(buf);
-	} else
-		*buffer = "No lyrics available.\n";
-	return B_OK;
+	if (file.InitCheck() == B_OK) {
+		const char* line = file.ReadLine();
+		while (line != NULL) {
+			*buffer << line << '\n';
+			line = file.ReadLine();
+		}
+	}
+
+	return file.InitCheck();
 }
 
 
