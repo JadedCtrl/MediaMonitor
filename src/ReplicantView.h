@@ -32,7 +32,8 @@ enum {
 	- MediaPlayer object */
 class ReplicantView : public BView {
 public:
-	                       ReplicantView(BRect frame, const char* name, uint32 draggerPlacement);
+	                       ReplicantView(BRect frame, const char* name, uint32 flags,
+		                                 uint32 draggerPlacement);
 	                       ReplicantView(BMessage* archive);
 
 	virtual status_t       Archive(BMessage* data, bool deep = true) const;

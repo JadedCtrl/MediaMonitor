@@ -10,10 +10,8 @@
 #include "ReplicantView.h"
 #include "Song.h"
 
-class BDragger;
 class BPopUpMenu;
 class BScrollView;
-class MediaPlayer;
 
 
 enum {

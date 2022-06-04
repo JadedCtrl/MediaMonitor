@@ -8,24 +8,26 @@
 #include "ReplicantView.h"
 #include "Song.h"
 
-class BDragger;
-class MediaPlayer;
-
 
 class CoverView : public ReplicantView {
 public:
-	                   CoverView(BRect frame);
-	                   CoverView(BMessage* archive);
+	                    CoverView(BRect frame);
+	                    CoverView(BMessage* archive);
 
-	virtual status_t   Archive(BMessage* data, bool deep = true) const;
-	static CoverView*  Instantiate(BMessage* data);
+	virtual status_t    Archive(BMessage* data, bool deep = true) const;
+	static CoverView*   Instantiate(BMessage* data);
 
-	virtual void       Pulse();
+	virtual void        MessageReceived(BMessage* msg);
 
-	virtual void       Draw(BRect updateRect);
+	virtual void        Pulse();
+
+	virtual BPopUpMenu* RightClickPopUp(BPopUpMenu* menu = NULL);
+
+	virtual void        Draw(BRect updateRect);
 
 private:
-	void               _Init(BRect frame);
+	bool                _IsSquare();
+	void                _MakeSquare();
 
 	Song fCurrentSong;
 	BBitmap* fCover;
