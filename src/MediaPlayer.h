@@ -30,6 +30,9 @@ public:
 
 	        bool         IsPlaying();
 	        int64        Position();
+	        float        Volume();
+	        void         SetVolume(float volume);
+
 	        bool         CurrentItem(Song* song, bool duration = true);
 	        bool         PlaylistItem(Song* song, int32 index, bool duration = true);
 
@@ -38,8 +41,8 @@ public:
 
 private:
 	        bool         _GetSong(Song* song, int32 trackIndex, bool durationRequired = true);
-	        void         _GetResponse(const char* attribute, BMessage* reply,
-		                              int32 trackIndex = MP_NO_TRACK, int32 what = B_GET_PROPERTY);
+	        void         _ScriptingCall(const char* attribute, BMessage* send, BMessage* reply,
+		                              int32 trackIndex = MP_NO_TRACK);
 	        const char*  _UriToPath(BString URI);
 
 	int32 fWindowIndex;

@@ -13,9 +13,11 @@
 #include "MediaPlayer.h"
 
 
-ReplicantView::ReplicantView(BRect frame, const char* name, uint32 flags, uint32 draggerPlacement)
+ReplicantView::ReplicantView(BRect frame, const char* name, uint32 draggerPlacement, uint32 resize,
+	uint32 flags)
 	:
-	BView(frame, name, B_FOLLOW_ALL_SIDES, B_TRANSPARENT_BACKGROUND | B_PULSE_NEEDED | flags)
+	BView(frame, name, resize,
+		B_TRANSPARENT_BACKGROUND | B_DRAW_ON_CHILDREN | B_PULSE_NEEDED | flags)
 {
 	BRect dragRect(frame.Width() - 10, 0, frame.Width(), frame.Height());
 	uint32 dragFollow = B_FOLLOW_RIGHT;

@@ -63,7 +63,7 @@ LyricsTextView::MouseDown(BPoint where)
 
 LyricsView::LyricsView(BRect frame)
 	:
-	ReplicantView(frame, "Lyrics", 0, B_FOLLOW_LEFT)
+	ReplicantView(frame, "Lyrics", B_FOLLOW_LEFT)
 {
 	BRect textRect(0, 0, Bounds().Width(), Bounds().Height() - 10);
 	fTextView = new LyricsTextView(textRect, "lyricsText", textRect,

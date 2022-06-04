@@ -48,8 +48,8 @@ MediaPlayer::Instantiate(BMessage* data)
 bool
 MediaPlayer::IsPlaying()
 {
-	BMessage reply;
-	_GetResponse("IsPlaying", &reply);
+	BMessage send, reply;
+	_ScriptingCall("IsPlaying", &send, &reply);
 	return reply.GetBool("result", false);
 }
 
@@ -57,9 +57,27 @@ MediaPlayer::IsPlaying()
 int64
 MediaPlayer::Position()
 {
-	BMessage reply;
-	_GetResponse("Position", &reply);
+	BMessage send, reply;
+	_ScriptingCall("Position", &send, &reply);
 	return reply.GetInt64("result", -1);
+}
+
+
+float
+MediaPlayer::Volume()
+{
+	BMessage send, reply;
+	_ScriptingCall("Volume", &send, &reply);
+	return reply.GetFloat("result", -1.0);
+}
+
+
+void
+MediaPlayer::SetVolume(float volume)
+{
+	BMessage send(B_SET_PROPERTY), reply;
+	send.AddFloat("data", volume);
+	_ScriptingCall("Volume", &send, &reply);
 }
 
 
@@ -90,8 +108,8 @@ MediaPlayer::SetWindow(int32 index)
 int32
 MediaPlayer::CountWindows()
 {
-	BMessage reply;
-	_GetResponse("Window", &reply, MP_NO_TRACK, B_COUNT_PROPERTIES);
+	BMessage send(B_COUNT_PROPERTIES), reply;
+	_ScriptingCall("Window", &send, &reply, MP_NO_TRACK);
 
 	int32 count;
 	if (reply.FindInt32("result", &count) == B_OK)
@@ -103,15 +121,15 @@ MediaPlayer::CountWindows()
 bool
 MediaPlayer::_GetSong(Song* song, int32 trackIndex, bool durationRequired)
 {
-	BMessage reply;
-	_GetResponse("URI", &reply, trackIndex);
+	BMessage send, reply;
+	_ScriptingCall("URI", &send, &reply, trackIndex);
 	BString uriString;
 	if (reply.FindString("result", &uriString) != B_OK)
 		return false;
 
 	int64 duration = -1;
 	if (durationRequired) {
-		_GetResponse("Duration", &reply, trackIndex);
+		_ScriptingCall("Duration", &send, &reply, trackIndex);
 		if (reply.FindInt64("result", &duration) != B_OK)
 			return false;
 	}
@@ -122,17 +140,20 @@ MediaPlayer::_GetSong(Song* song, int32 trackIndex, bool durationRequired)
 
 
 void
-MediaPlayer::_GetResponse(const char* attribute, BMessage* reply, int32 trackIndex, int32 what)
+MediaPlayer::_ScriptingCall(const char* attribute, BMessage* send, BMessage* reply, int32 trackIndex)
 {
-	BMessage message;
-	message.what = what;
-	message.AddSpecifier(attribute);
+	if (send->what == 0)
+	send->what = B_GET_PROPERTY;
+
+	send->AddSpecifier(attribute);
 	if (trackIndex > 0)
-		message.AddSpecifier("PlaylistTrack", trackIndex);
+		send->AddSpecifier("PlaylistTrack", trackIndex);
 	else if (trackIndex == MP_CURRENT_TRACK)
-		message.AddSpecifier("CurrentTrack");
-	message.AddSpecifier("Window", fWindowIndex);
-	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(&message, reply);
+		send->AddSpecifier("CurrentTrack");
+
+	send->AddSpecifier("Window", fWindowIndex);
+
+	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(send, reply);
 }
 
 

@@ -18,7 +18,7 @@ const uint32 COVER_MAKE_SQUARE = 'cvsq';
 
 CoverView::CoverView(BRect frame)
 	:
-	ReplicantView(frame, "Cover", B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE, B_FOLLOW_RIGHT)
+	ReplicantView(frame, "Cover", B_FOLLOW_RIGHT, B_FOLLOW_ALL_SIDES, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE)
 {
 	SetViewColor(B_TRANSPARENT_COLOR);
 	fCover = NULL;

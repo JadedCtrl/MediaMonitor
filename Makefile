@@ -38,7 +38,8 @@ SRCS = src/App.cpp \
 	src/MediaPlayer.cpp \
 	src/ReplicantView.cpp \
 	src/Song.cpp \
-	src/TextFile.cpp
+	src/TextFile.cpp \
+	src/VolumeView.cpp
 
 #	Specify the resource definition files to use. Full or relative paths can be
 #	used.

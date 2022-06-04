@@ -6,10 +6,12 @@
 #include "MainWindow.h"
 
 #include <LayoutBuilder.h>
+#include <SplitView.h>
 #include <TabView.h>
 
 #include "CoverView.h"
 #include "LyricsView.h"
+#include "VolumeView.h"
 
 
 MainWindow::MainWindow()
@@ -26,9 +28,17 @@ MainWindow::MainWindow()
 void
 MainWindow::_InitInterface()
 {
+
+	BView* controlsView = new BView("Controls", B_WILL_DRAW);
+	BLayoutBuilder::Group<>(controlsView, B_VERTICAL)
+		.Add(new VolumeView(BRect(BPoint(0,0), BSize(200.0, 20.0))))
+		.AddGlue()
+	.End();
+
 	BTabView* tabView = new BTabView("appletTabView");
 	tabView->AddTab(new LyricsView(BRect(BPoint(0,0), BSize(300.0, 200.0))));
 	tabView->AddTab(new CoverView(BRect(BPoint(0,0), BSize(300.0, 200.0))));
+	tabView->AddTab(controlsView);
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0.0f)
 		.Add(tabView)
