@@ -10,7 +10,7 @@
 #include <String.h>
 #include <TranslationUtils.h>
 
-#include "TextFile.h"
+#include "thirdparty/TextFile.h"
 
 
 Song::Song()

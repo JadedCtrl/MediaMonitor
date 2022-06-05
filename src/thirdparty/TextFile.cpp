@@ -3,7 +3,7 @@
 	Written by DarkWyrm, Copyright 2007
 	Released under the MIT license.
 */
-#include "TextFile.h"
+#include "thirdparty/TextFile.h"
 #include <stdio.h>
 #include <OS.h>
 #include <string.h>
