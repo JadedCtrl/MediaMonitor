@@ -5,7 +5,10 @@
 
 #include "App.h"
 
+#include <AboutWindow.h>
+
 #include "MainWindow.h"
+#include "Util.h"
 
 
 App::App()
@@ -13,8 +16,15 @@ App::App()
 	BApplication(APP_SIGNATURE)
 {
 	MainWindow* win = new MainWindow();
-	win->SetPulseRate(2500000);
+	win->SetPulseRate(1250000);
 	win->Show();
+}
+
+
+void
+App::AboutRequested()
+{
+	show_about_window(NULL);
 }
 
 

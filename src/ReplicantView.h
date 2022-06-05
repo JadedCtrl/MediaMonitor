@@ -53,10 +53,15 @@ public:
 	// Set inactivity state, re-render accordingly
 	virtual void           SetInactive(bool inactive);
 
+protected:
 	MediaPlayer* fMediaPlayer;
 	BDragger* fDragger;
 
+	BString fDescription;
+
+	bool fReplicated;
 	bool fInactive;
+
 	bool fTransparentInactivity;
 	bool fTransparentDragger;
 };

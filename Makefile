@@ -38,6 +38,7 @@ SRCS = src/App.cpp \
 	src/MediaPlayer.cpp \
 	src/ReplicantView.cpp \
 	src/Song.cpp \
+	src/Util.cpp \
 	src/VolumeView.cpp \
 	src/thirdparty/PlayPauseButton.cpp \
 	src/thirdparty/SymbolButton.cpp \
@@ -79,7 +80,8 @@ LIBPATHS =
 #	Additional paths to look for system headers. These use the form
 #	"#include <header>". Directories that contain the files in SRCS are
 #	NOT auto-included here.
-SYSTEM_INCLUDE_PATHS =
+SYSTEM_INCLUDE_PATHS = \
+	$(shell findpaths -e B_FIND_PATH_HEADERS_DIRECTORY private/interface)
 
 #	Additional paths paths to look for local headers. These use the form
 #	#include "header". Directories that contain the files in SRCS are

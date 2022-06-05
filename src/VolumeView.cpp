@@ -12,6 +12,9 @@
 #include "MediaPlayer.h"
 
 
+const char* kVolumeDesc = "VolumeView is a replicant that can monitor and change the volume of MediaPlayer.";
+
+
 // The same color MediaPlayer uses, interface/VolumeSlider
 static const rgb_color kVolumeGreen = (rgb_color){ 116, 224, 0, 255 };
 
@@ -22,6 +25,8 @@ VolumeView::VolumeView(BRect frame)
 	:
 	ReplicantView(frame, "Volume", B_FOLLOW_RIGHT, B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW | B_NAVIGABLE | B_FRAME_EVENTS)
 {
+	fDescription.SetTo(kVolumeDesc);
+
 	_InitInterface();
 	Pulse();
 }
@@ -31,6 +36,8 @@ VolumeView::VolumeView(BMessage* data)
 	:
 	ReplicantView(data)
 {
+	fDescription.SetTo(kVolumeDesc);
+
 	// For some reason, the BSlider gets archived with a wacko frame― better to just nuke it.
 	fSlider = dynamic_cast<BSlider*>(FindView("volumeSlider"));
 	delete fSlider;

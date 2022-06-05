@@ -14,12 +14,15 @@
 
 
 const uint32 COVER_MAKE_SQUARE = 'cvsq';
+const char* kCoverDesc = "CoverView is a replicant that shows a thumbnail for whatever is playing― often an album cover taken from a 'cover.jpg' or similar file.";
 
 
 CoverView::CoverView(BRect frame)
 	:
 	ReplicantView(frame, "Cover", B_FOLLOW_RIGHT, B_FOLLOW_ALL_SIDES, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE)
 {
+	fDescription.SetTo(kCoverDesc);
+
 	SetViewColor(B_TRANSPARENT_COLOR);
 	fCover = NULL;
 	Pulse();
@@ -30,6 +33,8 @@ CoverView::CoverView(BMessage* data)
 	:
 	ReplicantView(data)
 {
+	fDescription.SetTo(kCoverDesc);
+
 	SetViewColor(B_TRANSPARENT_COLOR);
 	fCover = NULL;
 	Pulse();

@@ -13,6 +13,9 @@
 #include "MediaPlayer.h"
 
 
+const char* kLyricsDesc = "LyricsView is a replicant that shows a transcription for the playing media. Usually this means lyrics to a song, stored in 'songFile.mp3.txt' or similar.";
+
+
 LyricsTextView::LyricsTextView(BRect frame, const char* name, BRect textFrame,
 	uint32 resize, uint32 flags)
 	:
@@ -65,6 +68,8 @@ LyricsView::LyricsView(BRect frame)
 	:
 	ReplicantView(frame, "Lyrics", B_FOLLOW_LEFT)
 {
+	fDescription.SetTo(kLyricsDesc);
+
 	BRect textRect(0, 0, Bounds().Width(), Bounds().Height() - 10);
 	fTextView = new LyricsTextView(textRect, "lyricsText", textRect,
 		B_FOLLOW_ALL, B_WILL_DRAW);
@@ -89,6 +94,7 @@ LyricsView::LyricsView(BMessage* data)
 	:
 	ReplicantView(data)
 {
+	fDescription.SetTo(kLyricsDesc);
 	fAutoScroll = false;
 
 	fFgColor = ui_color(B_PANEL_TEXT_COLOR);

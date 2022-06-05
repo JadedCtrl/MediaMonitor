@@ -11,6 +11,7 @@
 #include <Window.h>
 
 #include "MediaPlayer.h"
+#include "Util.h"
 
 
 ReplicantView::ReplicantView(BRect frame, const char* name, uint32 draggerPlacement, uint32 resize,
@@ -29,9 +30,11 @@ ReplicantView::ReplicantView(BRect frame, const char* name, uint32 draggerPlacem
 	fDragger->SetViewColor(B_TRANSPARENT_COLOR);
 	AddChild(fDragger);
 
+	fInactive = true;
+	fReplicated = false;
+
 	fTransparentInactivity = false;
 	fTransparentDragger = false;
-	fInactive = true;
 
 	fMediaPlayer = new MediaPlayer(0);
 }
@@ -49,7 +52,9 @@ ReplicantView::ReplicantView(BMessage* data)
 
 	fTransparentInactivity = data->GetBool("transparent_inactivity", true);
 	fTransparentDragger = data->GetBool("transparent_dragger", false);
+
 	fInactive = true;
+	fReplicated = true;
 }
 
 
@@ -93,6 +98,9 @@ ReplicantView::MessageReceived(BMessage* msg)
 			SetInactive(fInactive);
 			break;
 		}
+		case B_ABOUT_REQUESTED:
+			show_about_window(fDescription.String());
+			break;
 		default:
 			BView::MessageReceived(msg);
 			break;
@@ -139,6 +147,20 @@ ReplicantView::RightClickPopUp(BPopUpMenu* menu)
 	hideDragger->SetMarked(fTransparentDragger);
 	hideDragger->SetTarget(this);
 	hideMenu->AddItem(hideDragger);
+
+	menu->AddSeparatorItem();
+
+	BString aboutLabel = "About %replicant" B_UTF8_ELLIPSIS;
+	aboutLabel.ReplaceAll("%replicant", Name());
+	BMenuItem* aboutItem = new BMenuItem(aboutLabel, new BMessage(B_ABOUT_REQUESTED));
+	aboutItem->SetTarget(this);
+	menu->AddItem(aboutItem);
+
+	if (fReplicated) {
+		BMenuItem* removeItem = new BMenuItem("Remove replicant", new BMessage(B_TRASH_TARGET));
+		removeItem->SetTarget(fDragger);
+		menu->AddItem(removeItem);
+	}
 
 	return menu;
 }

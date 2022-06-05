@@ -11,7 +11,9 @@
 class App: public BApplication
 {
 public:
-				App();
+	              App();
+
+	virtual void  AboutRequested();
 };
 
 
