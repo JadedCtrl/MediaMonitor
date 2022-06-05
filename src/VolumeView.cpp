@@ -15,6 +15,8 @@
 // The same color MediaPlayer uses, interface/VolumeSlider
 static const rgb_color kVolumeGreen = (rgb_color){ 116, 224, 0, 255 };
 
+static const uint32 VOLUME_CHANGED = 'vvch';
+
 
 VolumeView::VolumeView(BRect frame)
 	:
@@ -24,6 +26,7 @@ VolumeView::VolumeView(BRect frame)
 
 	fSlider = new BSlider(frame, "volumeSlider", NULL, NULL, 0, 1000, B_HORIZONTAL, B_BLOCK_THUMB,
 		B_FOLLOW_LEFT_RIGHT);
+	fSlider->SetModificationMessage(new BMessage(VOLUME_CHANGED));
 	fSlider->UseFillColor(true, &kVolumeGreen);
 	fSlider->SetViewColor(B_TRANSPARENT_COLOR);
 	AddChild(fSlider);
@@ -37,6 +40,8 @@ VolumeView::VolumeView(BMessage* data)
 	ReplicantView(data)
 {
 	fSlider = dynamic_cast<BSlider*>(FindView("volumeSlider"));
+	if (fSlider->IsHidden())
+		fSlider->Show();
 	_Init();
 }
 
@@ -62,17 +67,30 @@ VolumeView::Instantiate(BMessage* data)
 
 
 void
+VolumeView::AttachedToWindow()
+{
+	fSlider->SetTarget(this);
+}
+
+
+void
 VolumeView::MessageReceived(BMessage* msg)
 {
-	if (msg->what != B_MOUSE_WHEEL_CHANGED || !fSlider->IsEnabled()) {
-		ReplicantView::MessageReceived(msg);
-		return;
-	}
-
-	float scroll = 0.0f;
-	if ((msg->FindFloat("be:wheel_delta_x", &scroll) == B_OK && scroll != 0.0f)
-		|| (msg->FindFloat("be:wheel_delta_y", &scroll) == B_OK && scroll != 0.0f)) {
-		fSlider->SetPosition(fSlider->Position() + scroll * -0.03);
+	switch (msg->what) {
+		case VOLUME_CHANGED:
+			fMediaPlayer->SetVolume(_PositionToVolume(fSlider->Position()));
+			break;
+		case B_MOUSE_WHEEL_CHANGED:
+		{
+			float scroll = 0.0f;
+			if ((msg->FindFloat("be:wheel_delta_x", &scroll) == B_OK && scroll != 0.0f)
+				|| (msg->FindFloat("be:wheel_delta_y", &scroll) == B_OK && scroll != 0.0f))
+				fSlider->SetPosition(fSlider->Position() + scroll * -0.03);
+			fMediaPlayer->SetVolume(_PositionToVolume(fSlider->Position()));
+			break;
+		}
+		default:
+			ReplicantView::MessageReceived(msg);
 	}
 }
 
@@ -80,17 +98,12 @@ VolumeView::MessageReceived(BMessage* msg)
 void
 VolumeView::Pulse()
 {
-	if (fSlider->Position() != fLastPos)
-		fMediaPlayer->SetVolume(_PositionToVolume(fSlider->Position()));
-
 	float volume = fMediaPlayer->Volume();
 	if (volume > 0) {
 		SetInactive(false);
 		fSlider->SetPosition(_VolumeToPosition(volume));
 	} else
 		SetInactive(true);
-
-	fLastPos = fSlider->Position();
 }
 
 
@@ -115,7 +128,6 @@ VolumeView::_Init()
 	fSlider->GetPreferredSize(NULL, &height);
 	SetExplicitMaxSize(BSize(B_SIZE_UNSET, height + 16));
 
-	fLastPos = 0;
 	Pulse();
 }
 

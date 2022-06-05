@@ -18,6 +18,8 @@ public:
 	virtual status_t    Archive(BMessage* data, bool deep = true) const;
 	static VolumeView*  Instantiate(BMessage* data);
 
+	        void        AttachedToWindow();
+
 	virtual void        MessageReceived(BMessage* msg);
 	virtual void        Pulse();
 
@@ -30,7 +32,6 @@ private:
 	        float       _PositionToVolume(float position);
 
 	BSlider* fSlider;
-	float fLastPos;
 };
 
 #endif // VOLUMEVIEW_H
