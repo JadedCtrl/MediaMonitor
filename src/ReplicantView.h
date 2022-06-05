@@ -45,6 +45,8 @@ public:
 
 	virtual void           MouseDown(BPoint where);
 
+	        void           Show();
+
 	// Populates the given menu with default items
 	virtual BPopUpMenu*    RightClickPopUp(BPopUpMenu* menu = NULL);
 

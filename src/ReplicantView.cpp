@@ -29,7 +29,7 @@ ReplicantView::ReplicantView(BRect frame, const char* name, uint32 draggerPlacem
 	fDragger->SetViewColor(B_TRANSPARENT_COLOR);
 	AddChild(fDragger);
 
-	fTransparentInactivity = true;
+	fTransparentInactivity = false;
 	fTransparentDragger = false;
 	fInactive = true;
 
@@ -110,6 +110,15 @@ ReplicantView::MouseDown(BPoint where)
 }
 
 
+void
+ReplicantView::Show()
+{
+	BView::Show();
+	if (!IsHidden())
+		SetInactive(fInactive);
+}
+
+
 BPopUpMenu*
 ReplicantView::RightClickPopUp(BPopUpMenu* menu)
 {
@@ -140,10 +149,13 @@ ReplicantView::SetInactive(bool inactive)
 {
 	fInactive = inactive;
 
+	if (IsHidden())
+		return;
+
 	if (inactive && fTransparentInactivity)
 		if (!fDragger->IsHidden() && fTransparentDragger)
 			fDragger->Hide();
-	if (fDragger->IsHidden() && (!fTransparentDragger || !fTransparentInactivity))
+	if (fDragger->IsHidden() && (!inactive || !fTransparentDragger || !fTransparentInactivity))
 			fDragger->Show();
 
 	Invalidate();

@@ -31,13 +31,13 @@ MainWindow::_InitInterface()
 
 	BView* controlsView = new BView("Controls", B_WILL_DRAW);
 	BLayoutBuilder::Group<>(controlsView, B_VERTICAL)
-		.Add(new VolumeView(BRect(BPoint(0,0), BSize(200.0, 20.0))))
+		.Add(new VolumeView(BRect(BPoint(0,0), BSize(100.0, 20.0))))
 		.AddGlue()
 	.End();
 
 	BTabView* tabView = new BTabView("appletTabView");
-	tabView->AddTab(new LyricsView(BRect(BPoint(0,0), BSize(300.0, 200.0))));
-	tabView->AddTab(new CoverView(BRect(BPoint(0,0), BSize(300.0, 200.0))));
+	tabView->AddTab(new LyricsView(BRect(BPoint(0,0), BSize(100.0, 100.0))));
+	tabView->AddTab(new CoverView(BRect(BPoint(0,0), BSize(100.0, 100.0))));
 	tabView->AddTab(controlsView);
 
 	BLayoutBuilder::Group<>(this, B_VERTICAL, 0.0f)
