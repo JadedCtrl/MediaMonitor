@@ -26,8 +26,7 @@ public:
 	virtual void        SetInactive(bool inactive);
 
 private:
-	        void        _Init();
-
+	        void        _InitInterface();
 	        float       _VolumeToPosition(float volume);
 	        float       _PositionToVolume(float position);
 

@@ -20,18 +20,10 @@ static const uint32 VOLUME_CHANGED = 'vvch';
 
 VolumeView::VolumeView(BRect frame)
 	:
-	ReplicantView(frame, "Volume", B_FOLLOW_RIGHT, B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW)
+	ReplicantView(frame, "Volume", B_FOLLOW_RIGHT, B_FOLLOW_LEFT_RIGHT, B_WILL_DRAW | B_NAVIGABLE | B_FRAME_EVENTS)
 {
-	SetViewColor(B_TRANSPARENT_COLOR);
-
-	fSlider = new BSlider(frame, "volumeSlider", NULL, NULL, 0, 1000, B_HORIZONTAL, B_BLOCK_THUMB,
-		B_FOLLOW_LEFT_RIGHT);
-	fSlider->SetModificationMessage(new BMessage(VOLUME_CHANGED));
-	fSlider->UseFillColor(true, &kVolumeGreen);
-	fSlider->SetViewColor(B_TRANSPARENT_COLOR);
-	AddChild(fSlider);
-
-	_Init();
+	_InitInterface();
+	Pulse();
 }
 
 
@@ -39,10 +31,12 @@ VolumeView::VolumeView(BMessage* data)
 	:
 	ReplicantView(data)
 {
+	// For some reason, the BSlider gets archived with a wacko frame― better to just nuke it.
 	fSlider = dynamic_cast<BSlider*>(FindView("volumeSlider"));
-	if (fSlider->IsHidden())
-		fSlider->Show();
-	_Init();
+	delete fSlider;
+
+	_InitInterface();
+	Pulse();
 }
 
 
@@ -122,13 +116,21 @@ VolumeView::SetInactive(bool inactive)
 
 
 void
-VolumeView::_Init()
+VolumeView::_InitInterface()
 {
+	SetViewColor(B_TRANSPARENT_COLOR);
+
+	fSlider = new BSlider(BRect(), "volumeSlider", NULL, NULL, 0, 1000, B_HORIZONTAL, B_BLOCK_THUMB,
+		B_FOLLOW_LEFT_RIGHT);
+	fSlider->SetModificationMessage(new BMessage(VOLUME_CHANGED));
+	fSlider->UseFillColor(true, &kVolumeGreen);
+	fSlider->SetViewColor(B_TRANSPARENT_COLOR);
+	AddChild(fSlider);
+
 	float height = 20.0;
 	fSlider->GetPreferredSize(NULL, &height);
 	SetExplicitMaxSize(BSize(B_SIZE_UNSET, height + 16));
-
-	Pulse();
+	fSlider->ResizeTo(Frame().Size());
 }
 
 
