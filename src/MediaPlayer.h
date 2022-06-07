@@ -29,7 +29,9 @@ public:
 
 
 	        bool         IsPlaying();
+			int64        Duration();
 	        int64        Position();
+	        void         SetPosition(int64 position);
 	        float        Volume();
 	        void         SetVolume(float volume);
 

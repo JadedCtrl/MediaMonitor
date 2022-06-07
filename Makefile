@@ -36,6 +36,7 @@ SRCS = src/App.cpp \
 	src/LyricsView.cpp \
 	src/MainWindow.cpp \
 	src/MediaPlayer.cpp \
+	src/PositionView.cpp \
 	src/ReplicantView.cpp \
 	src/Song.cpp \
 	src/Util.cpp \

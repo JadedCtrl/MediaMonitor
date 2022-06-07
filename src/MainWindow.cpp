@@ -11,6 +11,7 @@
 
 #include "CoverView.h"
 #include "LyricsView.h"
+#include "PositionView.h"
 #include "VolumeView.h"
 
 
@@ -32,6 +33,7 @@ MainWindow::_InitInterface()
 	BView* controlsView = new BView("Controls", B_WILL_DRAW);
 	BLayoutBuilder::Group<>(controlsView, B_VERTICAL)
 		.Add(new VolumeView(BRect(BPoint(0,0), BSize(100.0, 20.0))))
+		.Add(new PositionView(BRect(BPoint(0,0), BSize(100.0, 20.0))))
 		.AddGlue()
 	.End();
 

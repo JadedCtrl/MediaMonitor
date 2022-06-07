@@ -55,11 +55,29 @@ MediaPlayer::IsPlaying()
 
 
 int64
+MediaPlayer::Duration()
+{
+	BMessage send, reply;
+	_ScriptingCall("Duration", &send, &reply, MP_CURRENT_TRACK);
+	return reply.GetInt64("result", -1);
+}
+
+
+int64
 MediaPlayer::Position()
 {
 	BMessage send, reply;
 	_ScriptingCall("Position", &send, &reply);
 	return reply.GetInt64("result", -1);
+}
+
+
+void
+MediaPlayer::SetPosition(int64 position)
+{
+	BMessage send(B_SET_PROPERTY), reply;
+	send.AddInt64("data", position);
+	_ScriptingCall("Position", &send, &reply);
 }
 
 
