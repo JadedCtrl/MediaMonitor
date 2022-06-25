@@ -184,7 +184,7 @@ LyricsView::Pulse()
 		BString lyrics;
 		song.Lyrics(&lyrics);
 		fTextView->SetText(lyrics.String());
-		SetInactive(false);
+		SetInactive(lyrics.IsEmpty());
 	}
 
 	if (fAutoScroll) {
@@ -236,8 +236,11 @@ LyricsView::SetInactive(bool inactive)
 	else if (!inactive && fScrollView->IsHidden())
 		fScrollView->Show();
 
-	if (inactive) {
+	if (inactive && fMediaPlayer->IsValid()) {
 		fTextView->SetText("No lyrics to display!");
+		fTextView->SetAlignment(B_ALIGN_CENTER);
+	} else if (inactive) {
+		fTextView->SetText("No targeted MediaPlayer!");
 		fTextView->SetAlignment(B_ALIGN_CENTER);
 	} else
 		fTextView->SetAlignment(B_ALIGN_LEFT);
