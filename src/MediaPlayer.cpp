@@ -11,9 +11,15 @@
 #include "Song.h"
 
 
-MediaPlayer::MediaPlayer(int32 window)
+// This seems a fair amount of Pulse()-es to wait before spam-checking windows.
+const int32 kTargetHops = 20;
+
+
+MediaPlayer::MediaPlayer(int32 window, target followType)
 {
 	fWindowIndex = window;
+	fWindowTarget = followType;
+	fWindowTargetHops = 0;
 }
 
 
@@ -21,7 +27,9 @@ MediaPlayer::MediaPlayer(BMessage* data)
 	:
 	BArchivable(data)
 {
-	fWindowIndex = data->GetInt32("_window", 0);
+	fWindowIndex = data->GetInt32("_window", -1);
+	fWindowTarget = (target)data->GetInt32("_windowtype", MP_BY_TYPE_AUDIO);
+	fWindowTargetHops = 0;
 }
 
 
@@ -30,6 +38,7 @@ MediaPlayer::Archive(BMessage* data, bool deep) const
 {
 	status_t status = BArchivable::Archive(data, deep);
 	data->AddInt32("_window", fWindowIndex);
+	data->AddInt32("_windowtype", fWindowTarget);
 	data->AddString("class", "MediaPlayer");
 	data->AddString("add_on", APP_SIGNATURE);
 	return status;
@@ -42,6 +51,16 @@ MediaPlayer::Instantiate(BMessage* data)
 	if (!validate_instantiation(data, "MediaPlayer"))
 		return NULL;
 	return new MediaPlayer(data);
+}
+
+
+bool
+MediaPlayer::IsValid()
+{
+	BString type;
+	BMessage send, reply;
+	_ScriptingCall("Suites", &send, &reply, MP_NO_TRACK, true);
+	return reply.FindString("suites", &type) == B_OK && type == "suite/vnd.Haiku-MediaPlayer";
 }
 
 
@@ -114,6 +133,33 @@ MediaPlayer::PlaylistItem(Song* song, int32 index, bool duration)
 
 
 int32
+MediaPlayer::Window()
+{
+	if (fWindowTarget == MP_BY_INDEX || fWindowTargetHops-- > 0)
+		return fWindowIndex;
+
+	fWindowTargetHops = kTargetHops;
+
+	for (int32 i = CountWindows() - 1; i >= 0; i--) {
+		MediaPlayer mp(i, MP_BY_INDEX);
+		if (mp.IsValid()) {
+			if (fWindowTarget == MP_BY_LATEST)
+				return i;
+
+			Song current;
+			BString type;
+			if (CurrentItem(&current, false)
+				&& BNode(current.Path().Path()).ReadAttrString("BEOS:TYPE", &type) == B_OK)
+				if ((type.StartsWith("audio") && fWindowTarget == MP_BY_TYPE_AUDIO)
+					|| (type.StartsWith("video") && fWindowTarget == MP_BY_TYPE_VIDEO))
+					return i;
+		}
+	}
+	return fWindowIndex;
+}
+
+
+int32
 MediaPlayer::SetWindow(int32 index)
 {
 	if (index < CountWindows())
@@ -127,7 +173,7 @@ int32
 MediaPlayer::CountWindows()
 {
 	BMessage send(B_COUNT_PROPERTIES), reply;
-	_ScriptingCall("Window", &send, &reply, MP_NO_TRACK);
+	_ScriptingCall("Window", &send, &reply, MP_NO_TRACK, false);
 
 	int32 count;
 	if (reply.FindInt32("result", &count) == B_OK)
@@ -136,8 +182,23 @@ MediaPlayer::CountWindows()
 }
 
 
+target
+MediaPlayer::Target()
+{
+	return fWindowTarget;
+}
+
+
+target
+MediaPlayer::SetTarget(target target)
+{
+	fWindowTargetHops = 0;
+	return fWindowTarget = target;
+}
+
+
 bool
-MediaPlayer::_GetSong(Song* song, int32 trackIndex, bool durationRequired)
+MediaPlayer::_GetSong(Song* song, int32 trackIndex, bool durationReq)
 {
 	BMessage send, reply;
 	_ScriptingCall("URI", &send, &reply, trackIndex);
@@ -146,19 +207,25 @@ MediaPlayer::_GetSong(Song* song, int32 trackIndex, bool durationRequired)
 		return false;
 
 	int64 duration = -1;
-	if (durationRequired) {
+	if (durationReq) {
 		_ScriptingCall("Duration", &send, &reply, trackIndex);
 		if (reply.FindInt64("result", &duration) != B_OK)
 			return false;
 	}
 
+	if (trackIndex == MP_CURRENT_TRACK && fWindowTarget != MP_BY_INDEX
+		&& uriString != fLastItemPath) {
+		fLastItemPath.SetTo(uriString);
+		fWindowTargetHops = 0;
+	}
 	*song = Song(_UriToPath(uriString), duration);
 	return true;
 }
 
 
 void
-MediaPlayer::_ScriptingCall(const char* attribute, BMessage* send, BMessage* reply, int32 trackIndex)
+MediaPlayer::_ScriptingCall(const char* attribute, BMessage* send, BMessage* reply, int32 trackIndex,
+	bool window)
 {
 	if (send->what == 0)
 	send->what = B_GET_PROPERTY;
@@ -169,9 +236,14 @@ MediaPlayer::_ScriptingCall(const char* attribute, BMessage* send, BMessage* rep
 	else if (trackIndex == MP_CURRENT_TRACK)
 		send->AddSpecifier("CurrentTrack");
 
-	send->AddSpecifier("Window", fWindowIndex);
+	if (window)
+		send->AddSpecifier("Window", Window());
 
-	BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(send, reply);
+	if (BMessenger("application/x-vnd.Haiku-MediaPlayer").SendMessage(send, reply) != B_OK)
+		return;
+
+	if (reply != NULL && reply->what == B_MESSAGE_NOT_UNDERSTOOD)
+		fWindowTargetHops = 0;
 }
 
 

@@ -8,19 +8,18 @@
 #include <View.h>
 
 class BDragger;
+class BMenu;
 class BPopUpMenu;
 class MediaPlayer;
 
 
 enum {
-	MP_AUDIO_WINDOW = 'mpaw',
-	MP_VIDEO_WINDOW = 'mpvw',
-	MP_NEWEST_WINDOW = 'mpnw'
-};
-
-enum {
 	REPL_TRANSPARENTLY_INACTIVE = 'rtti',
-	REPL_TRANSPARENTLY_DRAG = 'rttd'
+	REPL_TRANSPARENTLY_DRAG = 'rttd',
+	REPL_WIN_BY_INDEX = 'rwbi',
+	REPL_WIN_BY_LATEST = 'rwbl',
+	REPL_WIN_BY_AUDIO = 'rwba',
+	REPL_WIN_BY_VIDEO = 'rwbv'
 };
 
 
@@ -52,6 +51,9 @@ public:
 
 	// Set inactivity state, re-render accordingly
 	virtual void           SetInactive(bool inactive);
+
+private:
+	BMenu* _WindowIndexMenu();
 
 protected:
 	MediaPlayer* fMediaPlayer;

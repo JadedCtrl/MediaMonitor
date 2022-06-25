@@ -36,7 +36,7 @@ ReplicantView::ReplicantView(BRect frame, const char* name, uint32 draggerPlacem
 	fTransparentInactivity = false;
 	fTransparentDragger = false;
 
-	fMediaPlayer = new MediaPlayer(0);
+	fMediaPlayer = new MediaPlayer();
 }
 
 
@@ -71,7 +71,7 @@ ReplicantView::Archive(BMessage* data, bool deep) const
 
 	data->AddString("class", "ReplicantView");
 	data->AddString("add_on", APP_SIGNATURE);
-	return status;	
+	return status;
 }
 
 
@@ -89,6 +89,25 @@ ReplicantView::MessageReceived(BMessage* msg)
 {
 	switch (msg->what)
 	{
+		case REPL_WIN_BY_AUDIO:
+			fMediaPlayer->SetTarget(MP_BY_TYPE_AUDIO);
+			break;
+		case REPL_WIN_BY_VIDEO:
+			fMediaPlayer->SetTarget(MP_BY_TYPE_VIDEO);
+			break;
+		case REPL_WIN_BY_LATEST:
+			fMediaPlayer->SetTarget(MP_BY_LATEST);
+			break;
+		case REPL_WIN_BY_INDEX:
+		{
+			int32 index = 0;
+			if (msg->FindInt32("index", &index) == B_OK) {
+				fMediaPlayer->SetTarget(MP_BY_INDEX);
+				fMediaPlayer->SetWindow(index);
+			}
+			break;
+		}
+
 		case REPL_TRANSPARENTLY_INACTIVE:
 		case REPL_TRANSPARENTLY_DRAG: {
 			if (msg->what == REPL_TRANSPARENTLY_INACTIVE)
@@ -136,7 +155,6 @@ ReplicantView::RightClickPopUp(BPopUpMenu* menu)
 
 	BMenu* hideMenu = new BMenu("Hide when inactive");
 	menu->AddItem(hideMenu);
-
 	BMenuItem* hideInactive = hideMenu->Superitem();
 	hideInactive->SetMessage(new BMessage(REPL_TRANSPARENTLY_INACTIVE));
 	hideInactive->SetMarked(fTransparentInactivity);
@@ -148,12 +166,29 @@ ReplicantView::RightClickPopUp(BPopUpMenu* menu)
 	hideDragger->SetTarget(this);
 	hideMenu->AddItem(hideDragger);
 
+	BMenu* windowMenu = new BMenu("Target window…");
+	menu->AddItem(windowMenu);
+
+	BMenu* indexMenu = _WindowIndexMenu();
+	indexMenu->SetTargetForItems(this);
+	windowMenu->AddItem(indexMenu);
+
+	BMenu* typeMenu = new BMenu("By type…");
+	windowMenu->AddItem(typeMenu);
+
+	BMenuItem* audioItem = new BMenuItem("Audio", new BMessage(REPL_WIN_BY_AUDIO));
+	BMenuItem* videoItem = new BMenuItem("Video", new BMessage(REPL_WIN_BY_VIDEO));
+	audioItem->SetMarked(fMediaPlayer->Target() == MP_BY_TYPE_AUDIO);
+	videoItem->SetMarked(fMediaPlayer->Target() == MP_BY_TYPE_VIDEO);
+	typeMenu->AddItem(audioItem);
+	typeMenu->AddItem(videoItem);
+	typeMenu->SetTargetForItems(this);
+
 	menu->AddSeparatorItem();
 
 	BString aboutLabel = "About %replicant" B_UTF8_ELLIPSIS;
 	aboutLabel.ReplaceAll("%replicant", Name());
 	BMenuItem* aboutItem = new BMenuItem(aboutLabel, new BMessage(B_ABOUT_REQUESTED));
-	aboutItem->SetTarget(this);
 	menu->AddItem(aboutItem);
 
 	if (fReplicated) {
@@ -181,4 +216,32 @@ ReplicantView::SetInactive(bool inactive)
 			fDragger->Show();
 
 	Invalidate();
+}
+
+
+BMenu*
+ReplicantView::_WindowIndexMenu()
+{
+	BMenu* menu = new BMenu("By index…");
+
+	BMenuItem* latestItem = new BMenuItem("Latest", new BMessage(REPL_WIN_BY_LATEST));
+	latestItem->SetMarked(fMediaPlayer->Target() == MP_BY_LATEST);
+	menu->AddItem(latestItem);
+
+	int32 windowCount = fMediaPlayer->CountWindows();
+	for (int32 i = 0; i < windowCount; i++)
+		if (MediaPlayer(i, MP_BY_INDEX).IsValid()) {
+			BString label("");
+			label << i;
+
+			BMessage* msg = new BMessage(REPL_WIN_BY_INDEX);
+			msg->AddInt32("index", i);
+
+			BMenuItem* indexItem = new BMenuItem(label, msg);
+			indexItem->SetMarked(fMediaPlayer->Target() == MP_BY_INDEX
+				&& fMediaPlayer->Window() == i);
+			menu->AddItem(indexItem);
+		}
+
+	return menu;
 }
