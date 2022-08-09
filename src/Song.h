@@ -18,6 +18,7 @@
 #define SONG_H
 
 #include <Path.h>
+#include <String.h>
 
 class BBitmap;
 
@@ -32,6 +33,7 @@ public:
 	BBitmap*    Cover();
 
 	BPath       Path();
+	BString     Type();
 	int64       Duration();
 
 	int operator ==(Song a)
@@ -60,6 +62,7 @@ private:
 
 	int64 fDuration;
 	BPath fPath;
+	BString fType;
 };
 
 #endif // SONG_H

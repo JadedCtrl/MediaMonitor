@@ -152,19 +152,24 @@ MediaPlayer::Window()
 
 	fWindowTargetHops = kTargetHops;
 
+	Song current;
+	CurrentItem(&current, false);
+
 	for (int32 i = CountWindows() - 1; i >= 0; i--) {
 		MediaPlayer mp(i, MP_BY_INDEX);
 		if (mp.IsValid()) {
 			if (fWindowTarget == MP_BY_LATEST)
-				return i;
+				return fWindowIndex = i;
 
-			Song current;
-			BString type;
-			if (CurrentItem(&current, false)
-				&& BNode(current.Path().Path()).ReadAttrString("BEOS:TYPE", &type) == B_OK)
-				if ((type.StartsWith("audio") && fWindowTarget == MP_BY_TYPE_AUDIO)
-					|| (type.StartsWith("video") && fWindowTarget == MP_BY_TYPE_VIDEO))
-					return i;
+			Song mpcurrent;
+			mp.CurrentItem(&mpcurrent, false);
+
+			// If the current item's type is correct, we'll keep it
+			if (!current.InitCheck() || !_MatchesTypeTarget(current.Type(), fWindowTarget))
+				if (mpcurrent.InitCheck() && _MatchesTypeTarget(mpcurrent.Type(), fWindowTarget))
+					return fWindowIndex = i;
+				else
+					fWindowIndex = -1;
 		}
 	}
 	return fWindowIndex;
@@ -256,6 +261,14 @@ MediaPlayer::_ScriptingCall(const char* attribute, BMessage* send, BMessage* rep
 
 	if (reply != NULL && reply->what == B_MESSAGE_NOT_UNDERSTOOD)
 		fWindowTargetHops = 0;
+}
+
+
+bool
+MediaPlayer::_MatchesTypeTarget(BString mimetype, target typeTarget)
+{
+	return (mimetype.StartsWith("video") && typeTarget == MP_BY_TYPE_VIDEO)
+		|| (mimetype.StartsWith("audio") && typeTarget == MP_BY_TYPE_AUDIO);
 }
 
 

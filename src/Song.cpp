@@ -75,6 +75,15 @@ Song::Path()
 }
 
 
+BString
+Song::Type()
+{
+	if (fType.IsEmpty())
+		BNode(fPath.Path()).ReadAttrString("BEOS:TYPE", &fType);
+	return fType;
+}
+
+
 int64
 Song::Duration()
 {

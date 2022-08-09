@@ -71,6 +71,7 @@ private:
 	        void         _ScriptingCall(const char* attribute, BMessage* send, BMessage* reply,
 		                                int32 trackIndex = MP_NO_TRACK, bool window = true);
 
+	        bool         _MatchesTypeTarget(BString mimetype, target typeTarget);
 	        const char*  _UriToPath(BString URI);
 
 	int32 fWindowIndex;
