@@ -189,6 +189,7 @@ ReplicantView::RightClickPopUp(BPopUpMenu* menu)
 	BString aboutLabel = "About %replicant" B_UTF8_ELLIPSIS;
 	aboutLabel.ReplaceAll("%replicant", Name());
 	BMenuItem* aboutItem = new BMenuItem(aboutLabel, new BMessage(B_ABOUT_REQUESTED));
+	aboutItem->SetTarget(this);
 	menu->AddItem(aboutItem);
 
 	if (fReplicated) {
