@@ -76,7 +76,7 @@ PositionView::Archive(BMessage* data, bool deep) const
 
 	data->AddString("class", "PositionView");
 	data->AddString("add_on", APP_SIGNATURE);
-	return status;	
+	return status;
 }
 
 
@@ -106,6 +106,9 @@ PositionView::MessageReceived(BMessage* msg)
 			break;
 		case B_MOUSE_WHEEL_CHANGED:
 		{
+			if (fInactive)
+				break;
+
 			float scroll = 0.0f;
 			if ((msg->FindFloat("be:wheel_delta_x", &scroll) == B_OK && scroll != 0.0f)
 				|| (msg->FindFloat("be:wheel_delta_y", &scroll) == B_OK && scroll != 0.0f))
